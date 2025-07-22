@@ -1,7 +1,3 @@
-'''Создать вычисляемое свойство для класса Square.
-Сделайте метод по вычислению площади свойством.
-Сделайте сторону квадрата свойством, которое можно установить только через сеттер.
-В сеттере добавьте проверку условия, что сторона должна быть неотрицательной.'''
 
 
 class Rectangle:
@@ -21,14 +17,34 @@ class Rectangle:
         return self.a == other.a and self.b == other.b
 
 
+
 class Square:
     '''Напишите класс SquareFactory с одним статическим методом,
     принимающим единственный аргумент — сторону квадрата.
      Данный метод должен возвращать объект класса Square с переданной стороной.'''
-    def __init__(self,a):
-        self.a = a
-    def get_area_square(self):
-        return self.a ** 2
+    '''Создать вычисляемое свойство для класса Square.
+    Сделайте метод по вычислению площади свойством.
+    Сделайте сторону квадрата свойством, которое можно установить только через сеттер.
+    В сеттере добавьте проверку условия, что сторона должна быть неотрицательной.'''
+
+    def __init__(self,side = None):
+        self.__side = side
+
+    @property
+    def area(self):
+        return self.__side ** 2
+
+    @property
+    def side(self):
+        return self.__side
+
+    @side.setter
+    def side(self, a):
+        if a < 0:
+            raise ValueError("Side must be more then 0")
+        else:
+            self.__side = a
+
 
 class SquareFactory:
     def __init__(self,a):
