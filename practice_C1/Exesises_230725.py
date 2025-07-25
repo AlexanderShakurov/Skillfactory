@@ -71,33 +71,7 @@ class Map:
 
         pass
 
-    def find_start_coordinate(self,long, map_board):
-        """Возвращает начальные координаты для размещения корабля, длиной long
-        return x,y """
 
-
-        # Ищем случайное число типа корабля - горизонтальный, вертикальный
-        type_boat_index = random.randrange(0, self.dim_board)  % 2 # 0 - вертикальный,  не 0 - горизонтальный
-
-        type_boat = 'H' if type_boat_index else 'V'
-        if type_boat_index:
-            col_= random.randrange(1, self.dim_board - long) # если type горизонтальный, столбец может быть от 1 до dim_board - long
-            row_ = random.randrange(1,6) # строка может быть любой из размера поля
-
-        else:
-            col_ = random.randrange(1, self.dim_board - long)  # если вертикальный, строка может быть от 1 до dim_board - long
-            row_ = random.randrange(1, 6)
-        return row_, col_, type_boat
-
-        # Проверяем, может ли быть размещен корабль с полученными параметрами , с учетом текущего состояния поля
-
-        res = Ship(row_start, col_start, )
-
-
-        # Ищем случайное число строки
-        # Ищем случайное число стобца
-        # Перебираем все строки и столбцы и находим подъодящую точку начала корабля
-        # Возвращаем координаты начала и тип корабля.
 
     def strike(self, gamer): # Ход игрока или компьютера
 
@@ -116,23 +90,87 @@ class Map:
 
 class Ship:
 
-    def __init__(self, row_start, col_start, long, type_, current_map):
-        self.row_start = row_start # начальный столбец
-        self.col_start, = col_start # начальная строка
-        self.long = long # длина
-        self.type_ = type_ # расположение - вертикальное или горизонтальное
-        self.current_map = current_map # текущая карта поля
+    def __init__(self, long):
+        self.long = long # длина корябля
 
-    def check_coordinate(self):
-        s  = []
-        if type_ == 'H':
-            for i in range(-1, long+2): # идем вдоль корабля
-                # если горизонтальное направление , увеличиваем col
-                # если вертикальное  - увеличиваем row
-                
+      
+
+    def find_free_place(self, dots_list):
+        # dots_list - текущее состояние точек поля
+        """ случайно выбирается тип размещения, H - горизонтальный или V - вертикальный
+            и координаты начала корабля"""
+        type_boat_index = random.randrange(0, map_.dim_board) % 2  # 0 - вертикальный,  не 0 - горизонтальный
+        type_boat = 'H' if type_boat_index else 'V'
+
+        dot_row, dot_col= 1, 1 # начинаем с точки (1,1)
+
+        #  Горизонтальное расположение
+
+        s = {}
+        """ Идем по очереди, по строкам. Проверяем точки от (col_, row_) до (col_ + long_, row_
+        на dot.staus_ == 'free'
+        Если все точки 'free', записываем в s[row_]  True, иначе False
+        Если набралось три подряд идущие s[i] = True, отмечаем точку (col_ + 1, row_ + 1) как одну из возможных
+        точек начала корабля.
+        Добывляем найденную точку в список точек, из которого потом случайным образом будет выбрана одна 
+        и присвоена данному экземпляру корабля в качестве начальной."""
+        dots_for_start = []
+        for col_ in range(0, map_.dim_board - self.long):# идем по столбцам от -1 до map_.dim_board - self.long)
+
+            row_ = 0
+            s = {}
+            #s[row_] = True  # создаем нулевую строку
+            #print(f"{__LINE__}: проверяем точку ({dot_row_},{dot_col_})")
+            count_row = 0
+            while row_ <= map_.dim_board - 1 : # идем по строкам, включая -1 и map_.dim_board + 1:
+
+                list_ = [True if dots_list[row_][col_].status_ == 'free' else False for j in range(self.long)]
+
+                if col_ == 0:
+                    list_.append(True if dots_list[row_][col_ + 1].status_ == 'free' else False )
+                elif col_ == map_.dim_board - self.long - 1:
+                    list_.insert(0,True if dots_list[row_][col_ - 1].status_ == 'free' else False)
+                else:
+                    list_.append(True if dots_list[row_][col_ + 1].status_ == 'free' else False )
+                    list_.insert(0, True if dots_list[row_][col_ - 1].status_ == 'free' else False)
 
 
 
+                print(f"{__LINE__}: ({row_},{col_}) - {list_}")
+
+                if all(list_):
+                    if row_ == 0:
+                        count_row += 2
+                        print(f"{__LINE__}: row_ = {row_}")
+                    elif (row_ == map_.dim_board - 1) and (count_row == 1):
+                        count_row += 2
+                        print(f"{__LINE__}: row_ = {row_}")
+                    else:
+                        print(f"{__LINE__}: row_ = {row_}")
+                        count_row  += 1
+                    print(f"{__LINE__}: count_row = {count_row}")
+                    if count_row == 3:
+                        # если набралось три подряд строки с long + 2 точками 'free'
+                        # добавляем точку в список возможных точек начала корабля
+
+                        col_start = col_ + 1 if col_ else col_
+                        dots_for_start.append(dots_list[row_ -1][col_start])
+                        print(f"{__LINE__}: ({row_ -1},{col_start}) добавлена в список точек старта")
+                        count_row = 2
+                        input() # Здесь остановился 
+                    else:
+                        row_ += 1
+
+                else: # в строке row_ среди {long}+2 точках есть занятая
+                    print(f"{__LINE__}: не все True")
+                    count_row = 0
+                    row_ += 2 # смещаем поиск на 2 строки от текущей, т.к. корабль не должен иметь соседних заных клеток
+
+
+                #print(f"{__LINE__}: s[{row_}] = {s[row_]}")
+
+        print(f"{__LINE__}: {dots_list}")
+        return dots_list
 
 
 
@@ -168,10 +206,14 @@ def main_game():
 if __name__ == '__main__':
     map_ = Map(6)
     print(f"{__LINE__}:{map_.dim_board}")
-    s = map_.create_coordinate()
-    # map_.paint_board(s)
-    row_, col_, type_boat_ = map_.find_free_dot(1, s)
-    print (f"{__LINE__}: {row_}, {col_}, {type_boat_}")
+    dots_list_all = map_.create_coordinate() # список из всех точек поля
+
+    ship3 = Ship(3)
+    dot_list_for_start = ship3.find_free_place(dots_list_all)
+
+    for i in dot_list_for_start :
+        print(f"{__LINE__}: {i}")
+    
 
 
 
