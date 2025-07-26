@@ -102,7 +102,8 @@ class Ship:
         type_boat_index = random.randrange(0, map_.dim_board) % 2  # 0 - вертикальный,  не 0 - горизонтальный
         type_boat = 'H' if type_boat_index else 'V'
 
-        dot_row, dot_col= 1, 1 # начинаем с точки (1,1)
+        print(f"{__LINE__}: длина корабля {self.long}, направление {type_boat} ")
+
 
         #  Горизонтальное расположение
 
@@ -114,63 +115,169 @@ class Ship:
         точек начала корабля.
         Добывляем найденную точку в список точек, из которого потом случайным образом будет выбрана одна 
         и присвоена данному экземпляру корабля в качестве начальной."""
-        dots_for_start = []
-        for col_ in range(0, map_.dim_board - self.long):# идем по столбцам от -1 до map_.dim_board - self.long)
-
-            row_ = 0
-            s = {}
-            #s[row_] = True  # создаем нулевую строку
-            #print(f"{__LINE__}: проверяем точку ({dot_row_},{dot_col_})")
-            count_row = 0
-            while row_ <= map_.dim_board - 1 : # идем по строкам, включая -1 и map_.dim_board + 1:
-
-                list_ = [True if dots_list[row_][col_].status_ == 'free' else False for j in range(self.long)]
-
-                if col_ == 0:
-                    list_.append(True if dots_list[row_][col_ + 1].status_ == 'free' else False )
-                elif col_ == map_.dim_board - self.long - 1:
-                    list_.insert(0,True if dots_list[row_][col_ - 1].status_ == 'free' else False)
-                else:
-                    list_.append(True if dots_list[row_][col_ + 1].status_ == 'free' else False )
-                    list_.insert(0, True if dots_list[row_][col_ - 1].status_ == 'free' else False)
+        dots_for_start = [] # список возможных точек начала корабля
+        #for col_ in range(0, map_.dim_board - self.long + 1):# идем по столбцам от -1 до map_.dim_board - self.long)
+        type_boat = 'V'
+        if type_boat == 'H'  :
+            for i in range(0, map_.dim_board - self.long + 1):
+                
+                count_row = 0
+                #for row_ in range (0, map_.dim_board ):
+                for j in range (0, map_.dim_board ):
+                    col_, row_ = i, j
 
 
+                    list_ = [True if dots_list[row_][col_].status_ == 'free' else False for j in range(self.long)]
 
-                print(f"{__LINE__}: ({row_},{col_}) - {list_}")
-
-                if all(list_):
-                    if row_ == 0:
-                        count_row += 2
-                        print(f"{__LINE__}: row_ = {row_}")
-                    elif (row_ == map_.dim_board - 1) and (count_row == 1):
-                        count_row += 2
-                        print(f"{__LINE__}: row_ = {row_}")
+                    if (col_ == 0 and type_boat == 'H' ) :
+                        list_.append(True if dots_list[row_][col_+ self.long ].status_ == 'free' else False )
+                    elif (col_ == map_.dim_board - self.long and type_boat == 'H' ) :
+                          
+                        list_.insert(0,True if dots_list[row_][col_ - 1].status_ == 'free' else False)
                     else:
-                        print(f"{__LINE__}: row_ = {row_}")
-                        count_row  += 1
-                    print(f"{__LINE__}: count_row = {count_row}")
-                    if count_row == 3:
-                        # если набралось три подряд строки с long + 2 точками 'free'
-                        # добавляем точку в список возможных точек начала корабля
+                        list_.append(True if dots_list[row_][col_ + self.long ].status_ == 'free' else False )
+                        list_.insert(0, True if dots_list[row_][col_ - 1].status_ == 'free' else False)
 
-                        col_start = col_ + 1 if col_ else col_
-                        dots_for_start.append(dots_list[row_ -1][col_start])
-                        print(f"{__LINE__}: ({row_ -1},{col_start}) добавлена в список точек старта")
-                        count_row = 2
-                        input() # Здесь остановился 
+
+
+                    print(f"{__LINE__}: ({row_},{col_}) - {list_}")
+
+                    if all(list_):
+
+                        if row_ == 0:
+                            count_row += 2
+                            print(f"{__LINE__}: row_ = {row_}")
+                        elif (row_ == map_.dim_board  - 1 ) and count_row > 0:
+                            count_row = 4
+                            print(f"{__LINE__}: row_ = {row_}")
+                        else:
+                            print(f"{__LINE__}: row_ = {row_}")
+                            count_row  += 1
+                        print(f"{__LINE__}: count_row = {count_row}")
+
+
+                        if (count_row == 3) and (type_boat == 'H' ) :
+                            # если набралось три подряд строки с long + 2 точками 'free'
+                            # добавляем точку в список возможных точек начала корабля
+
+                            #col_start = col_ + 1 if col_ else col_
+
+                            col_start = col_
+                            dots_for_start.append(dots_list[row_ -1][col_start])
+                            print(f"{__LINE__}: ({row_ -1},{col_start}) добавлена в список точек старта")
+                            count_row = 2
+                        elif (count_row == 4) and (type_boat == 'H' ) :
+                            col_start = col_
+                            dots_for_start.append(dots_list[row_ - 1][col_start]) # точка из предпоследней строки
+                            print(f"{__LINE__}: ({row_ - 1},{col_start}) добавлена в список точек старта")
+                            dots_for_start.append(dots_list[row_][col_start]) # точка из последней строки
+                            print(f"{__LINE__}: ({row_ },{col_start}) добавлена в список точек старта")
+                        elif (count_row == 3) and (type_boat == 'V' ):
+                               col_start = col_
+                               dots_for_start.append(dots_list[row_ -1][col_start])
+                               print(f"{__LINE__}: ({row_ -1},{col_start}) добавлена в список точек старта")
+                               count_row = 2
+
+
+
+                    else: # в строке row_ среди {long}+2 точках есть занятая
+                        print(f"{__LINE__}: не все True")
+                        count_row = 0
+
+
+        if type_boat == 'V'  :
+            for i in range(0, map_.dim_board - self.long + 1):
+
+                count_row = 0
+                #for row_ in range (0, map_.dim_board ):
+                for j in range (0, map_.dim_board ):
+                    col_, row_ = j ,i
+
+
+                    list_ = [True if dots_list[row_][col_].status_ == 'free' else False for _ in range(self.long)]
+
+                    if (col_ == 0 and type_boat == 'V' ) :
+                        list_.append(True if dots_list[row_][col_+ self.long ].status_ == 'free' else False )
+                    elif (col_ == map_.dim_board - self.long and type_boat == 'V' ) :
+
+                        list_.insert(0,True if dots_list[row_][col_ - 1].status_ == 'free' else False)
                     else:
-                        row_ += 1
+                        list_.append(True if dots_list[row_][col_ + self.long ].status_ == 'free' else False )
+                        list_.insert(0, True if dots_list[row_][col_ - 1].status_ == 'free' else False)
+                    print(f"{__LINE__}: ({row_},{col_}) - {list_}")
 
-                else: # в строке row_ среди {long}+2 точках есть занятая
-                    print(f"{__LINE__}: не все True")
-                    count_row = 0
-                    row_ += 2 # смещаем поиск на 2 строки от текущей, т.к. корабль не должен иметь соседних заных клеток
+                    if all(list_):
+
+                        if row_ == 0:
+                            count_row += 2
+                            print(f"{__LINE__}: row_ = {row_}")
+                        elif (row_ == map_.dim_board  - 1 ) and count_row > 0:
+                            count_row = 4
+                            print(f"{__LINE__}: row_ = {row_}")
+                        else:
+                            print(f"{__LINE__}: row_ = {row_}")
+                            count_row  += 1
+                        print(f"{__LINE__}: count_row = {count_row}")
 
 
-                #print(f"{__LINE__}: s[{row_}] = {s[row_]}")
+                        if (count_row == 3) and (type_boat == 'V' ) :
 
+                            # если набралось три подряд строки с long + 2 точками 'free'
+                            # добавляем точку в список возможных точек начала корабля
+
+                            #col_start = col_ + 1 if col_ else col_
+
+                            col_start = col_
+                            dots_for_start.append(dots_list[row_ -1][col_start])
+                            print(f"{__LINE__}: ({row_ -1},{col_start}) добавлена в список точек старта")
+                            count_row = 2
+
+                        elif (count_row == 4) and (type_boat == 'V' ) :
+
+                            col_start = col_
+                            dots_for_start.append(dots_list[row_ - 1][col_start]) # точка из предпоследней строки
+                            print(f"{__LINE__}: ({row_ - 1},{col_start}) добавлена в список точек старта")
+                            dots_for_start.append(dots_list[row_][col_start]) # точка из последней строки
+                            print(f"{__LINE__}: ({row_ },{col_start}) добавлена в список точек старта")
+                    else: # в строке row_ среди {long}+2 точках есть занятая
+                        print(f"{__LINE__}: не все True")
+                        count_row = 0
         print(f"{__LINE__}: {dots_list}")
         return dots_list
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -213,7 +320,7 @@ if __name__ == '__main__':
 
     for i in dot_list_for_start :
         print(f"{__LINE__}: {i}")
-    
+
 
 
 
