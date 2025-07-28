@@ -1,5 +1,6 @@
 import inspect
 import random
+import re
 
 from tornado.wsgi import to_wsgi_str
 
@@ -11,9 +12,6 @@ class LineNo:
 
 
 __LINE__ = LineNo()
-
-
-
 
 
 class Dot:
@@ -52,18 +50,25 @@ class Map:
 
         return s
 
-    def create_ships(self, dots_list):
+    def create_ships(self, dots_list): # создаем объекты кораблей и размещаем их на карте
 
         ship= {}
         ships_list1 = sorted(self.ships_list, reverse=True)
+        while True:
+            res = []
+            for i in ships_list1:
+                for j in range(i[1]):
 
-        for i in ships_list1:
-            for j in range(i[1]):
+                    ship[f"{i[0]}-{j}"] = Ship(i[0])
+                    res1, res2, res3, res4 = ship[f"{i[0]}-{j}"].find_free_place(dots_list)
+                    if res1:
 
-                ship[f"{i[0]}-{j}"] = Ship(i[0])
-                ship[f"{i[0]}-{j}"].find_free_place(dots_list)
-                dots_list = self.place_the_ship(ship[f"{i[0]}-{j}"], dots_list)
-        return dots_list
+                        dots_list = self.place_the_ship(ship[f"{i[0]}-{j}"], dots_list)
+                    res.append(res1)
+            input(f"{__LINE__}: res  = {res}")
+            if all(res):
+
+                return dots_list
 
     def place_the_ship(self, ship, dots_list): # записываем координаты точек корабля в объекты точек
         s =[]
@@ -73,7 +78,7 @@ class Map:
         for i in range(ship.long):
             row1_ = row_ + i if ship.direction == 'V'  else row_
             col1_ = col_ + i if ship.direction == 'H'  else col_
-            input(f"{__LINE__}:(row1_, col1_) ({row1_}, {col1_})")
+            print(f"{__LINE__}:(row1_, col1_) ({row1_}, {col1_})")
             dots_list[row1_][col1_].status_ = 'busy'
             dots_list[row1_][col1_].ship = ship
             s.append( dots_list[row1_][col1_])
@@ -289,15 +294,58 @@ class Ship:
                         print(f"{__LINE__}: не все True , count_row  = 0")
                         count_row = 0
         print(f"{__LINE__}: количество точек {len(dots_for_start)}")
+        if dots_for_start: # если есть хоть одна подходящая точка для начала корабля
+            random_dot_start = random.choice(dots_for_start)
 
-        random_dot_start = random.choice(dots_for_start)
+            self.row_ = random_dot_start.x
+            self.col_ = random_dot_start.y
+            print(f"{__LINE__}: (x,y) = ({self.row_},{self.col_ }) - {self.direction}")
+            return True, self.row_,  self.col_ , self.direction
+        else:
+            return False, False, False, False
 
-        x = random_dot_start.x
-        y = random_dot_start.y
-        self.row_ = x
-        self.col_ = y
-        print(f"{__LINE__}: (x,y) = ({x},{y}) - {self.direction}")
-        return random_dot_start.x, random_dot_start.y,  self.direction
+
+class Player():
+
+
+
+
+    def check_shot_coordinates(func):  # декоратор проверки правильности введенных координат
+        # на предмет непересечения с уже сделанными ходами
+
+
+        def wrapper(*args, **kwargs):
+            while True:
+                x, y = func(*args, **kwargs)
+                print(f"{__LINE__}: ({x},{y})")
+                try:
+                    status_ = args[1][x][y].status_
+                    print(f"{__LINE__}: args[1] = args[{x}][{y}].status_ = {status_}")
+
+
+                    if status_ not in ['free', 'busy']:
+                        print(f"{__LINE__}: в эту клетку ранее уже был сделан ход. Повторите ввод")
+                    else:
+                        print(f"{__LINE__}: ход ({x},{y}) принят")
+                        break
+                except IndexError:
+                    print(f"{__LINE__}: введены координаты вне границ поля. Повторите ввод")
+
+
+            return x, y
+
+
+        return wrapper
+
+    @check_shot_coordinates
+    def take_shot(self,dots_list_): # ход игрока
+        m  = input(f"Ход игрока. Введите координаты клетки, XY. X - по вертикали, Y -  по горизонтали :")
+        m = re.match(r'(\d{1})\W*(\d{1})', m)
+        x, y  = m.group(1), m.group(2)
+        print(f"{__LINE__} Вы ввели ({x},{y})")
+        return int(x), int(y)
+
+
 
 
 
@@ -367,6 +415,7 @@ def main_game():
 if __name__ == '__main__':
 
     map_ = Map(6)
+    gamer = Player()
     print(f"{__LINE__}:{map_.dim_board}")
     dots_list = map_.create_coordinate() # список из всех точек поля
     #dots_list_all[2][1].status_= 'busy'
@@ -376,6 +425,9 @@ if __name__ == '__main__':
     #x_start, y_start, type_direction = ship3.find_free_place(dots_list_all)
     #dots_list_all  = map_.place_the_ship(ship3,dots_list_all )
     map_.paint_board(dots_list )
+    x, y = gamer.take_shot(dots_list)
+    print(f"{__LINE__}: ({x},{y})")
+    
 
 
 
