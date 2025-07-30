@@ -1,8 +1,15 @@
 import inspect
 import random
 import re
+import logging
 
-from tornado.wsgi import to_wsgi_str
+logging.basicConfig(handlers=[logging.FileHandler(filename="./skill.log",
+                                                 encoding='utf-8', mode='a+')],
+                    format="%(asctime)s - %(module)s - %(levelname)s - %(funcName)s: %(lineno)d - %(message)s",
+                    datefmt='%H:%M:%S',
+                    level=logging.DEBUG)
+
+
 
 
 class LineNo:
@@ -34,19 +41,22 @@ class Dot:
 
 
 
-class Map:
+class Board:
 
-    ships_list =[(1,4), (2,2), (3,1)] # ключ - длина корабля, значение - количество
+    
 
-    def __init__(self, dim_board):
-        self.dim_board = dim_board
-        print(f"{__LINE__}: {type(self.dim_board)}")
+    def __init__(self, size_map, user_map = None):
+        self.size.map= size_map
+        self.user_map = [[Dot(j, i) for i in range(0, self.dim_board )] for j in range(0, self.dim_board )]
+        self.comp_map = [[Dot(j, i) for i in range(0 + , self.dim_board)] for j in range(0, self.dim_board)]
+
 
     def create_coordinate(self):  # начальное создание точек поля
         """ (a,x,y)
         a in ['free', ship_class_name, X, T"""
         
-        s = [[Dot(j, i) for i in range(0, self.dim_board )] for j in range(0, self.dim_board )]
+        s= [[Dot(j, i) for i in range(0, self.dim_board )] for j in range(0, self.dim_board )]
+        
 
         return s
 
@@ -120,7 +130,7 @@ class Map:
         x,y  - координаты выстрела
         Проверяет координаты на корректность
         Проверяет координаты на попадание
-        Передает координаты update_map
+        Передает координаты update_Board
         Возвращает x, y """
         pass
 
@@ -143,7 +153,7 @@ class Ship:
         # dots_list - текущее состояние точек поля
         """ случайно выбирается тип размещения, H - горизонтальный или V - вертикальный
             и координаты начала корабля"""
-        type_boat_index = random.randrange(0, map_.dim_board) % 2  # 0 - вертикальный,  не 0 - горизонтальный
+        type_boat_index = random.randrange(0, Board_.dim_board) % 2  # 0 - вертикальный,  не 0 - горизонтальный
         self.direction = 'H' if type_boat_index else 'V'
 
         print(f"{__LINE__}: длина корабля {self.long}, направление {self.direction} ")
@@ -163,11 +173,11 @@ class Ship:
 
 
         if self.direction == 'H'  :
-            for i in range(0, map_.dim_board - self.long + 1):
+            for i in range(0, Board_.dim_board - self.long + 1):
                 
                 count_row = 0
-                #for row_ in range (0, map_.dim_board ):
-                for j in range (0, map_.dim_board ):
+                #for row_ in range (0, Board_.dim_board ):
+                for j in range (0, Board_.dim_board ):
                     col_, row_ = i, j
 
 
@@ -175,7 +185,7 @@ class Ship:
 
                     if col_ == 0 :
                         list_.append(True if dots_list[row_][col_+ self.long ].status_ == 'free' else False )
-                    elif col_ == map_.dim_board - self.long  :
+                    elif col_ == Board_.dim_board - self.long  :
                           
                         list_.insert(0,True if dots_list[row_][col_ - 1].status_ == 'free' else False)
                     else:
@@ -191,7 +201,7 @@ class Ship:
                         if row_ == 0:
                             count_row += 2
                             print(f"{__LINE__}: row_ = {row_}")
-                        elif (row_ == map_.dim_board  - 1 ) and count_row > 0:
+                        elif (row_ == Board_.dim_board  - 1 ) and count_row > 0:
                             count_row = 4
                             print(f"{__LINE__}: row_ = {row_}")
                         else:
@@ -230,11 +240,11 @@ class Ship:
 
 
         if self.direction == 'V'  : # Вертикальное расположение
-            for i in range(0, map_.dim_board - self.long + 1):
+            for i in range(0, Board_.dim_board - self.long + 1):
 
                 count_row = 0
-                #for row_ in range (0, map_.dim_board ):
-                for j in range (0, map_.dim_board ):
+                #for row_ in range (0, Board_.dim_board ):
+                for j in range (0, Board_.dim_board ):
                     col_, row_ = j ,i
                     print(f"{__LINE__}: i = {i}, j = {j}")
 
@@ -243,7 +253,7 @@ class Ship:
                     if row_ == 0 :
                         list_.append(True if dots_list[row_+ self.long ][col_].status_ == 'free' else False )
                         list_w.append(f"({dots_list[row_ + self.long][col_].x}, {dots_list[row_ + self.long][col_].y})-{dots_list[row_ + self.long][col_].status_}" )
-                    elif row_ == map_.dim_board - self.long :
+                    elif row_ == Board_.dim_board - self.long :
 
                         list_.insert(0,True if dots_list[row_-1][col_ ].status_ == 'free' else False)
                         list_w.insert(0, f"({dots_list[row_ -1][col_].x}, {dots_list[row_ -1][col_].y})-{dots_list[row_ -1][col_].status_}")
@@ -260,7 +270,7 @@ class Ship:
                         if col_ == 0:
                             count_row += 2
                             print(f"{__LINE__}: row_ = {row_}, col_ = 0, count_row = {count_row}")
-                        elif (col_ == map_.dim_board  - 1 ) and count_row > 0:
+                        elif (col_ == Board_.dim_board  - 1 ) and count_row > 0:
                             count_row = 4
                             print(f"{__LINE__}: row_ = {row_}, col_ = {col_}, count_row = {count_row}")
                         else:
@@ -385,46 +395,42 @@ class Player():
 
 def main_game():
 
-    map_width = map_length = 6 # Задаем размерность полей
-    ship_type = dict() # Длины - количество кораблей
-    ship_type[1]= 4
-    ship_type[2]= 2
-    ship_type[3]= 1
-
-    map_ = Map(6,6)
+    Board_width = Board_length = 6 # Задаем размерность полей
+    ships_list =[(1,4), (2,2), (3,1)] # ключ - длина корабля, значение - количество кораблей этой длины
+    board = Board(6,6)
 
     ships = []
     for i in range(len(ship_type, -1)):
         for j in range(ship_type[i]):
-            x, y = map.free_coordinate(i) # "Получаем начальные координаты корабля, исходя из его длины
+            x, y = Board.free_coordinate(i) # "Получаем начальные координаты корабля, исходя из его длины
             ships.append(Ship(i,j, x, y)) #Создаем экземпляр корабля и добавляем в список экземпляров кораблей
 
     next_gamer = {0:'comp', 1:'user'}
 
-    next_gamer_index = map.whos_first_strike() # возвращает индекс игрока, чей первый ход, 0: comp, 1: user
+    next_gamer_index = Board.whos_first_strike() # возвращает индекс игрока, чей первый ход, 0: comp, 1: user
 
     x, y, = 0, 0  # начальные координаты игры, для инициализации чистого поля
 
     while True: # Игра началась
-        map_.update_map(x, y)
-        map_.strike(next_gamer[next_gamer_index])
+        Board_.update_Board(x, y)
+        Board_.strike(next_gamer[next_gamer_index])
         next_gamer_index = not next_gamer_index
 
 
 
 if __name__ == '__main__':
 
-    map_ = Map(6)
+    board= Board(6)
     gamer = Player()
-    print(f"{__LINE__}:{map_.dim_board}")
-    dots_list = map_.create_coordinate() # список из всех точек поля
+    print(f"{__LINE__}:{Board_.dim_board}")
+    dots_list = Board_.create_coordinate() # список из всех точек поля
     #dots_list_all[2][1].status_= 'busy'
     #print(f"{__LINE__}: {dots_list_all[2][1].x}, {dots_list_all[2][1].y}")
 
-    dots_list = map_.create_ships(dots_list)
+    dots_list = Board_.create_ships(dots_list)
     #x_start, y_start, type_direction = ship3.find_free_place(dots_list_all)
-    #dots_list_all  = map_.place_the_ship(ship3,dots_list_all )
-    map_.paint_board(dots_list )
+    #dots_list_all  = Board_.place_the_ship(ship3,dots_list_all )
+    Board_.paint_board(dots_list )
     x, y = gamer.take_shot(dots_list)
     print(f"{__LINE__}: ({x},{y})")
     
