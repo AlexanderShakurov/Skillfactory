@@ -45,52 +45,112 @@ class Board:
 
     
 
-    def __init__(self, size_map, ships_list):
+    def __init__(self, size_map, ships_list,ships_user = None, ships_comp = None, comp_map = None):
         self.size_map= size_map
         self.ships_list = ships_list
+
         self.comp_map = [[Dot(j, i) for i in range(0, self.size_map )] for j in range(0, self.size_map )] # список точек доски comp
         #logging.info(f"Создан comp_map")
         self.user_map = [[Dot(j, i) for i in range(0 + self.size_map, 2 * self.size_map )] for j in range(0, self.size_map)]
+        self.ships_user = self.create_ships_user()
+        self.ships_comp = self.create_ships()[1]
+        '''
         for j in self.user_map:
             for i in range(0, self.size_map):
                 #logging.info(f"user_map = {j.x}, {j.y}, {j.status_}")
                 logging.info(f"user_map = {j[i].x}, {j[i].y}, {j[i].status_}")
         logging.info(f"Создан user_map")
+        '''
         # список точек доски gamer
-        self.comp_map = self.create_ships(self.comp_map) # карта компьютера с введенными координатами кораблей
+        self.comp_map = self.create_ships()[0] # карта компьютера с введенными координатами кораблей
         logging.info(f"В user_map внесены координаты кораблей")
 
-    def create_ships(self, comp_map): # создаем объекты кораблей и размещаем их на карте
-        comp_map = [[Dot(j, i) for i in range(0, self.size_map)] for j in
-                         range(0, self.size_map)]  # список точек доски comp
-        ship= {} # Словарь из всех созданных объектов кораблей компьютера
+    def update_user_map(self,res, x, y): # Обновление dot, ship, board по результату хода comp
+        row_ = x
+        col_ = y - self.size_map
+        m = res.group()
+        logging.info(f"Обновление dot, ship, board по результату хода comp ({x},{y}) - {m}")
+
+        if m == '1': # Ход мимо
+            self.user_map[row_][col_].status_ = 'T'
+        elif m == '2': # Ранен
+
+            self.user_map[row_][col_].status_ = 'X'
+            m1 = [(-1,-1),(-1,1),(1,-1),(1,1)]
+
+            for i in range(4): # Проверяем четыре соседние клетки на предмет раненых
+                row0 = row_ + m1[i][0]
+                col0 = col_ + m1[i][1]
+                logging.info(f" Проверяем точку user.map[{row0}][{col0}]")
+                if (row0 in range(self.size_map)) and (col0 in range(self.size_map)):
+
+                    m2 = self.user_map[row0][col0].status_
+                    logging.info(f" user_map[{row0}][{col0}].status_ = {m2}")
+
+
+                if m2 == 'X':
+                    ship = self.user_map[row0][col0].ship
+                    ship.long +=1
+                    self.user_map[row_][col_].ship = ship
+
+            if not self.user_map[row_][col_].ship:
+                logging.info(f" соседних раненых клеток нет, выбираем первый свободный корабль")
+                for k,v in self.ships_user.items():
+                    if not v.long:
+                        logging.info(f" длина корабля {v} None, т.е. к нему не привязана ни одна ячейка")
+
+                        v.long +=1
+                        self.user_map[row_][col_].ship = v # в клетку записываем ссылку на выбранный корабль
+                        logging.info(f" записываем в клетку ({row_},{col_}) ссылку на выбранный корабль")
+
+        elif m == '3': # Убит
+                pass
+
+
+
+        input(f"{__LINE__}: контроль обработки ответа user")
+
+
+    def create_ships_user(self):  # создаем объекты кораблей user
         ships_list1 = sorted(self.ships_list, reverse=True)
-        count_try = 1 # номер попытки создания кораблей. Для теста
+        ships_user = {}
+        for i in ships_list1:
+            for j in range(i[1]):
+                ships_user[f"{i[0]}-{j}"] = Ship(i[0])
+        return ships_user
+
+    def create_ships(self): # создаем объекты кораблей comp и размещаем их на карте
+        #comp_map = [[Dot(j, i) for i in range(0, self.size_map)] for j in
+        #                 range(0, self.size_map)]  # список точек доски comp
+        ships_comp = {} # Словарь из всех созданных объектов кораблей компьютера
+        ships_list1 = sorted(self.ships_list, reverse=True)
+        count_try = 1 # номер попытки размещения кораблей. Для отладки
         while True:
             #Очищаем все точки доски comp
             for i in range(0, self.size_map):
                 for j in range(0, self.size_map):
-                    comp_map[i][j].status_ = 'free'
+                    self.comp_map[i][j].status_ = 'free'
             res = []
             for i in ships_list1:
                 for j in range(i[1]):
 
-                    ship[f"{i[0]}-{j}"] = Ship(i[0])
-                    res1, res2, res3, res4 = ship[f"{i[0]}-{j}"].find_free_place(comp_map, self.size_map)
+                    ships_comp[f"{i[0]}-{j}"] = Ship(i[0])
+                    res1, res2, res3, res4 = ships_comp[f"{i[0]}-{j}"].find_free_place(self.comp_map, self.size_map)
                     logging.info(f"ship[{i[0]}-{j}]: {res1},{res2},{res3},{res4}")
                     if res1:
                         #logging.info(f"Найдены координаты для  ship[{i[0]}-{j}] ")
-                        comp_map = self.place_the_ship(ship[f"{i[0]}-{j}"], comp_map)
+                        self.comp_map = self.place_the_ship(ships_comp[f"{i[0]}-{j}"], self.comp_map)
                     res.append(res1)
 
 
             if all(res):
                 logging.info(f"Все корабли размещены на comp_map")
-                return comp_map
+                return self.comp_map, ships_comp
             else:
                 logging.error(f"Не удалось разместить корабли, повторяем попытку")
                 print(f"{__LINE__}: не удалось разместить, попытка {count_try}, повторяем")
                 count_try +=1
+
 
     def place_the_ship(self, ship, dots_list): # записываем координаты точек корабля в объекты точек
         #s =[]
@@ -109,7 +169,7 @@ class Board:
 
 
     def paint_board(self):    # рисует доску по списку с точками
-        char_ = {'free':'О', 'busy':'B'}
+        char_ = {'free':"◯", 'busy':"◯", 'X':'X', 'T':'T', 'killed':'■' }
         board0 = '   1 2 3 4 5 6   --     1 2 3 4 5 6 '
         print(board0)
         board0 = '  -------------  --    -------------'
@@ -126,7 +186,61 @@ class Board:
             print(f"{board1}  --  {board2}")
         return True
 
+    def check_comp_move(self, x, y): #Получение от user результата хода comp
+        logging.info(f" ждем ответа от user")
+        while True:
+            m = input (f"Введите результат хода. 1 - мимо, 2 -ранен, 3 - убит :")
+            m1 = {'1':'Мимо', '2': 'Ранен', '3': 'Убит'}
+            m2 = {'1':'T', '2': 'X', '3': 'Убит'}
+            res = re.match(r'([1-3]{1})',m)
+            if res:
+                logging.info(f"ответ user: {m1[res.group()]}")
+                print(f"{__LINE__}: Результат хода - {m1[res.group()]}")
+                self.update_user_map (res, x, y)  #Обновление карты по итогам хода.
+                break
+            else:
+                logging.info(f"некорректный выбор ответа")
+                print(f"{__LINE__}:некорректный выбор ответа, повторите ввод")
 
+
+
+    def check_move(self, x, y, dot_ ): # Проверка введенных координат user
+        logging.info(f" start ({x},{y}) - {dot_[x][y].status_}")
+        if dot_[x][y].status_ == 'free':
+            result = 'Мимо'
+
+            dot_[x][y].status_ = 'T'
+            logging.info(f" dot_[{x}][{y}].status_ = 'T'")
+        elif dot_[x][y].status_ == 'busy':
+            logging.info(f" dot_[x][y].status_ == 'busy'")
+            try:
+                ship_= dot_[x][y].ship
+                ship_.life_ -= 1
+                ship_life = ship_.life_
+            except Exception as er:
+                logging.error(f"Ошибка ship_= dot_[x][y].ship или ship_life = ship_.life: {er}")
+            logging.info(f" ship_ = {ship_}, ship_life = {ship_life}")
+            if ship_life > 0 :
+                result = 'Ранен'
+                dot_[x][y].status_ = 'X'
+                logging.info(f" dot_[{x}][{y}].status_ = 'X'")
+            else:
+                result = 'Убит'
+                row0  = ship_.row_
+                col0 = ship_.col_
+                direct_ = ship_.direction
+                for i in range(ship_.long):
+                    x = row0 + (0 if direct_ == 'H' else i)
+                    y = col0 + (0 if direct_ == 'V' else i)
+                    dot_[x][y].status_ = 'killed'
+                logging.info(f" dot_[{x}][{y}].status_ = 'Убит'")
+        else:
+            logging.info(f"Такой ход уже был")
+
+            result = False
+        logging.info(f"Результат хода - {result}")
+
+        return result
 
     def update_coordinate(self,x,y):
 
@@ -154,14 +268,17 @@ class Board:
 
 class Ship:
 
-    def __init__(self, long, direction = None, row_ = None, col_= None):
+    def __init__(self, long, direction = None, row_ = None, col_= None, life_ = None):
         self.long = long # длина корабля
         self.direction = direction # направление корабля, H - горизонт, V - вертик.
         self.row_ = row_ # начальная координата (строка)
         self.col_ = col_ # начальная координата (столбец)
+        self.life_ = long
         logging.info(f" Создаем ship {long}, {direction}, {row_}, {col_}")
       
-
+    def check_life(self): # Проверка результата попадания
+        self.life_ -= 1
+        return self.life_
     def find_free_place(self, dots_list, size_map):
         # dots_list - текущее состояние точек поля
         """ случайно выбирается тип размещения, H - горизонтальный или V - вертикальный
@@ -346,19 +463,108 @@ class Player:
 
 
     def first_player(self): # Определяем, чей первый ход
-        first_ = random.randrange(0, 1)
+        first_ = random.randrange(0, 10) & 2
+        logging.info(f"first_= {first_}")
         return first_
 
-    def make_move(self):
+    def make_move(self, board):
+       logging.info(f"self.next_ = {self.next_}")
        if self.next_ :
-          logging.info(f"Ход игрока")
-          print(f"Ход игрока. Введите координаты")
-          m = input(f" XY, X -по вертикали, Y - по горизонтали, Q - выход :")
+
+          self.user_move(board)
        else:
            logging.info(f"Ход компьютера")
            print(f"Ход компьютера")
+           self.comp_move(board)
 
        self.next_= not self.next_
+
+    def comp_move(self, board): # Ход компьютера
+
+        s = []
+        '''
+        s = [(board.user_map[i][j].x, board.user_map[i][j].y) for i in range (board.size_map)
+                                                              for j in range (board.size_map)
+                                                              if board.user_map[i][j].status_ in ['free', 'busy']]
+        '''
+        for i in range(board.size_map):
+            for j in range(board.size_map):
+                if board.user_map[i][j].status_ == 'free':
+                    logging.info(f" Проверяем точку ({i},{j})  на соседство с ранеными или убитыми кораблями")
+                    m1 = [(-1, -1), (-1, 0), (0, -1), (1, 0), (0, 1), (-1, 1), (1, -1), (1, 1)]
+                    flag = True # если все точки вокруг будут подходить, то центральная точка попадет в список возможных точек хода comp
+                    for l in range(8):
+                        row0 = i + m1[l][0]
+                        col0 = j + m1[l][1]
+
+                        try:
+                            m2 = board.user_map[row0][col0].status_
+                            logging.info(f" user_map[{row0}][{col0}].status_ = {m2}")
+                        except Exception:
+                            logging.error(f" user_map[{row0}][{col0}] вне поля")
+                            flag = False
+                            break
+                        else:
+                            if m2 == 'X' and (m1[l][0] and m1[l][1]): # диагональная клетка
+                                flag = False
+                                break
+                            elif m2 == 'killed':
+                                flag = False
+                                break
+                    if flag:
+                        s.append((board.user_map[i][j].x, board.user_map[i][j].y))
+                        logging.info(f" В список точек хода компа добавлена ({board.user_map[i][j].x},{board.user_map[i][j].y})")
+
+        logging.info(f" список свободных ячеек для хода comp {s}")
+        random_dot_move = random.choice(s)
+        dot_move_row_ = random_dot_move[0] + 1
+        dot_move_col_ = random_dot_move[1] - board.size_map + 1
+        logging.info(f" выбрана ячейка ({dot_move_row_ },{dot_move_col_})")
+        print(f"{__LINE__}: Ход компьютера ({dot_move_row_ },{dot_move_col_})")
+        board.check_comp_move(random_dot_move[0],random_dot_move[1])
+
+        #result = board.check_move(x, y, board.comp_map)
+        
+        input(f"{__LINE__}: контроль хода комп, проверь log")
+
+
+    def user_move(self,board): # Ход игрока
+        logging.info(f"Ход игрока")
+        while True:
+            print(f"Ход игрока. Введите координаты XY")
+            m = input(f"X -по вертикали, Y - по горизонтали, Q - выход :")
+            m1 = re.match(r'([Qq]$)|(\d{1})\W*(\d{1})', m)
+            if m1:
+                logging.info(f" {m1.group(1), m1.group(2), m1.group(3)}")
+                if m1.group(1):
+                    pass
+                    #finish_game(): # Завершение игры по инициатеве user
+                    logging.info(f" Завершение игры по инициатеве user")
+                    break
+                else:
+
+                    x = int(m1.group(2)) - 1
+                    y = int(m1.group(3)) - 1
+
+                    try:
+                        status_dot = board.comp_map[x][y].status_
+                        logging.info(f" проверяем board_.comp_map[{x},{y}].status_ = {status_dot}")
+                        result = board.check_move(x, y, board.comp_map)
+                        if result:
+                            print(f"{__LINE__}: Результат хода {result}")
+                            break
+                        else:
+                            print(f"{__LINE__}:Такой ход уже был, повторите ввод")
+
+                    except:
+                        logging.error(f" Координаты вне диапазона поля, повторите ввод {x},{y}")
+                        print(f"Координаты вне диапазона поля, повторите ввод")
+                    input(f"(__LINE__): контроль")
+            else:
+                logging.error(f" неверные координаты {m}")
+                print(f"Недопустимые символы, повторите ввод")
+
+
 
 
     def check_shot_coordinates(func):  # декоратор проверки правильности введенных координат
@@ -442,49 +648,25 @@ def main_game():
     player_= Player()
 
 
-    for _ in range(10):
+    for _ in range(50):
         board_.paint_board()
-        player_.make_move()
+        player_.make_move(board_)
         input(f"{__LINE__}: контроль")
 
-
-    next_gamer = {0:'comp', 1:'user'}
-
-    next_gamer_index = Board.whos_first_strike() # возвращает индекс игрока, чей первый ход, 0: comp, 1: user
-
-    x, y, = 0, 0  # начальные координаты игры, для инициализации чистого поля
-
-    while True: # Игра началась
-        Board_.update_Board(x, y)
-        Board_.strike(next_gamer[next_gamer_index])
-        next_gamer_index = not next_gamer_index
-
+    input(f"{__LINE__}: stop game")
 
 
 if __name__ == '__main__':
     main_game()
     #board= Board(6)
-    '''
-    gamer = Player()
-    print(f"{__LINE__}:{Board_.dim_board}")
-    dots_list = Board_.create_coordinate() # список из всех точек поля
-    #dots_list_all[2][1].status_= 'busy'
-    #print(f"{__LINE__}: {dots_list_all[2][1].x}, {dots_list_all[2][1].y}")
 
-    dots_list = Board_.create_ships(dots_list)
-    #x_start, y_start, type_direction = ship3.find_free_place(dots_list_all)
-    #dots_list_all  = Board_.place_the_ship(ship3,dots_list_all )
-    Board_.paint_board(dots_list )
-    x, y = gamer.take_shot(dots_list)
-    print(f"{__LINE__}: ({x},{y})")
-    '''
     
 
 
 
 
 
-    print(f"{__LINE__}: stop")
+
 
 
 
