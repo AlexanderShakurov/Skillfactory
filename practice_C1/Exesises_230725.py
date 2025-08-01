@@ -54,16 +54,55 @@ class Board:
         self.user_map = [[Dot(j, i) for i in range(0 + self.size_map, 2 * self.size_map )] for j in range(0, self.size_map)]
         self.ships_user = self.create_ships_user()
         self.ships_comp = self.create_ships()[1]
-        '''
-        for j in self.user_map:
-            for i in range(0, self.size_map):
-                #logging.info(f"user_map = {j.x}, {j.y}, {j.status_}")
-                logging.info(f"user_map = {j[i].x}, {j[i].y}, {j[i].status_}")
-        logging.info(f"Создан user_map")
-        '''
+
         # список точек доски gamer
-        self.comp_map = self.create_ships()[0] # карта компьютера с введенными координатами кораблей
-        logging.info(f"В user_map внесены координаты кораблей")
+        self.comp_map = self.create_ships()[0] # карта поля игрока comp с введенными координатами кораблей
+        logging.info(f"В comp_map внесены координаты кораблей")
+
+    def check_win(self, next_): #Проверка наступления выигрыша
+        pass
+
+        ships_ = self.ships_user if next_ else self.ships_comp
+        gamer_name = 'user' if next_ else 'comp'
+        for i in self.ships_comp:
+            kkk = self.ships_comp[i]
+            logging.info(f" Проверяем все корабли comp {i},{kkk}, {kkk.life_}, {kkk.row_}, {kkk.col_}" )
+        for i in self.ships_user :
+            kkk = self.ships_comp[i]
+            logging.info(f" Проверяем все корабли user {i},{kkk}, {kkk.life_}, {kkk.row_}, {kkk.col_}" )
+        for k, v in ships_.items():
+            logging.info(f" Проверяем корабли {gamer_name} {k}.life = {v.life_}")
+            if v.life_ !=  0:
+                return False, gamer_name
+            logging.info(f" Все корабли {gamer_name} убиты")
+        gamer_win = 'comp' if next_ else 'user'
+        return True, gamer_win
+
+
+        
+    def check_dot(self, x, y):
+        logging.info(f"Ищем соседнюю раненую клетку для точки ({x},{y})")
+
+        m1 = [(-1, 0), (0, -1), (1, 0), (0, 1)]
+        s =[]
+        for l in range(len(m1)):
+            row0 = x + m1[l][0]
+            col0 = y + m1[l][1]
+
+            try:
+                m2 = self.user_map[row0][col0].status_
+                logging.info(f" user_map[{row0}][{col0}].status_ = {m2}")
+            except Exception:
+                logging.error(f" user_map[{row0}][{col0}] вне поля")
+
+
+            else:
+                if m2 == 'X' :
+                    logging.info(f" Найдена соседняя раненая клетка ({row0},{col0})")
+
+                    s.append((row0,col0))
+
+        return s
 
     def update_user_map(self,res, x, y): # Обновление dot, ship, board по результату хода comp
         row_ = x
@@ -73,42 +112,85 @@ class Board:
 
         if m == '1': # Ход мимо
             self.user_map[row_][col_].status_ = 'T'
+
         elif m == '2': # Ранен
-
+            logging.info(f"Обработка ответа Ранен от user ")
             self.user_map[row_][col_].status_ = 'X'
-            m1 = [(-1,-1),(-1,1),(1,-1),(1,1)]
+            logging.info(
+                f"Проверяем смежные клетки (кроме диагональных) на предмет ранен, для объединения в один корабль")
+            m2 = self.check_dot(row_, col_)
+            if m2:
+                logging.info(f"Найдена соседняя раненая точка {m2} ")
+                row_2, col_2 = m2[0][0], m2[0][1]
 
-            for i in range(4): # Проверяем четыре соседние клетки на предмет раненых
-                row0 = row_ + m1[i][0]
-                col0 = col_ + m1[i][1]
-                logging.info(f" Проверяем точку user.map[{row0}][{col0}]")
-                if (row0 in range(self.size_map)) and (col0 in range(self.size_map)):
+                ship_damaged = self.user_map[row_2][col_2].ship
+                ship_damaged.long +=1
+                self.user_map[row_][col_].ship = ship_damaged
+                logging.info(f"Получаем ссылку на корабль из соседней раненой клетки {ship_damaged} ")
+            else:
 
-                    m2 = self.user_map[row0][col0].status_
-                    logging.info(f" user_map[{row0}][{col0}].status_ = {m2}")
-
-
-                if m2 == 'X':
-                    ship = self.user_map[row0][col0].ship
-                    ship.long +=1
-                    self.user_map[row_][col_].ship = ship
-
-            if not self.user_map[row_][col_].ship:
-                logging.info(f" соседних раненых клеток нет, выбираем первый свободный корабль")
-                for k,v in self.ships_user.items():
+                logging.info(f"Cоседняя раненая точка не найдена,  {m2} ")
+                logging.info(f" Присваиваем свободный корабль точке {row_}, {col_}")
+                for k, v in self.ships_user.items():
+                    logging.info(f" {v.long}")
                     if not v.long:
-                        logging.info(f" длина корабля {v} None, т.е. к нему не привязана ни одна ячейка")
+                        ship_damaged = v
+                        ship_damaged.long = 1
 
-                        v.long +=1
-                        self.user_map[row_][col_].ship = v # в клетку записываем ссылку на выбранный корабль
-                        logging.info(f" записываем в клетку ({row_},{col_}) ссылку на выбранный корабль")
+                        self.user_map[row_][col_].ship = ship_damaged
+                        logging.info(f" точке ({row_}{col_}) присвоен корабль {ship_damaged}")
+                        break
+
+                # s = [self.ships_user[k] for k,v in self.ships_user.items() if not self.ships_user[k].long]
+                # ship_killed = s[0]
+                logging.info(f"Выбран неиспользуемый корабль {ship_damaged}")
+
 
         elif m == '3': # Убит
-                pass
+
+            self.user_map[row_][col_].status_ = 'killed'
+            logging.info(f"Обработка ответа Убит от user ")
+            logging.info(f"Проверяем смежные клетки (кроме диагональных) на предмет ранен, для объединения в один корабль")
+            m2 = self.check_dot(row_, col_)
+            if m2:
+                logging.info(f"Найдена соседняя раненая точка {m2} ")
+                row_2, col_2 = m2[0][0], m2[0][1]
+                self.user_map[row_2][col_2].status_ = 'killed'
+
+                ship_killed = self.user_map[row_2][col_2].ship
+                logging.info(f" ship_killed = {ship_killed}")
+                if ship_killed.long == 2:
+                    ship_killed.long = 3
+                    ship_killed.life = 0
+                    delta_row = row_ - row_2
+                    delta_col = col_ - col_2
+                    row_3 = -2 * (delta_row) + row_
+                    col_3 = -2 * (delta_col) + col_
+                    logging.info(f" Длина убитого корабля 3, третья точка ({row_3},{col_3}")
+                    self.user_map[row_3][col_3].status_ = 'killed'
+                if ship_killed.long == 1:
+                    ship_killed.long = 2
+                    ship_killed.life = 0
+                    logging.info(f" Длина убитого корабля 2")
+            else:
+                logging.info(f"Cоседняя раненая клетка не найдена,  {m2} ")
+                logging.info(f" Присваиваем  свободный корабль точке {row_}, {col_}")
+                for k,v in self.ships_user.items():
+                    logging.info(f" {v.long}")
+                    if not v.long:
+                        ship_killed = v
+                        ship_killed.long = 1
+                        ship_killed.life = 0
+                        self.user_map[row_][col_].ship = ship_killed
+                        break
+
+                #s = [self.ships_user[k] for k,v in self.ships_user.items() if not self.ships_user[k].long]
+                #ship_killed = s[0]
+                logging.info(f"Выбран неиспользуемый корабль {ship_killed}")
 
 
 
-        input(f"{__LINE__}: контроль обработки ответа user")
+        #input(f"{__LINE__}: контроль обработки ответа user")
 
 
     def create_ships_user(self):  # создаем объекты кораблей user
@@ -116,7 +198,8 @@ class Board:
         ships_user = {}
         for i in ships_list1:
             for j in range(i[1]):
-                ships_user[f"{i[0]}-{j}"] = Ship(i[0])
+                #ships_user[f"{i[0]}-{j}"] = Ship(i[0])
+                ships_user[f"{i[0]}-{j}"] = Ship(None)
         return ships_user
 
     def create_ships(self): # создаем объекты кораблей comp и размещаем их на карте
@@ -134,7 +217,7 @@ class Board:
             for i in ships_list1:
                 for j in range(i[1]):
 
-                    ships_comp[f"{i[0]}-{j}"] = Ship(i[0])
+                    ships_comp[f"{i[0]}-{j}"] = Ship(i[0], life_ = i[0])
                     res1, res2, res3, res4 = ships_comp[f"{i[0]}-{j}"].find_free_place(self.comp_map, self.size_map)
                     logging.info(f"ship[{i[0]}-{j}]: {res1},{res2},{res3},{res4}")
                     if res1:
@@ -145,6 +228,9 @@ class Board:
 
             if all(res):
                 logging.info(f"Все корабли размещены на comp_map")
+                for k, v, in ships_comp.items():
+                    logging.info(f" {k}: {v}, life {v.life_}, long {v.long}, row_ {v.row_}, col_ {v.col_}" )
+
                 return self.comp_map, ships_comp
             else:
                 logging.error(f"Не удалось разместить корабли, повторяем попытку")
@@ -169,7 +255,7 @@ class Board:
 
 
     def paint_board(self):    # рисует доску по списку с точками
-        char_ = {'free':"◯", 'busy':"◯", 'X':'X', 'T':'T', 'killed':'■' }
+        char_ = {'free':"◯", 'busy':"B", 'X':'X', 'T':'T', 'killed':'■' }
         board0 = '   1 2 3 4 5 6   --     1 2 3 4 5 6 '
         print(board0)
         board0 = '  -------------  --    -------------'
@@ -180,7 +266,7 @@ class Board:
             board1, board2 = f"{count_row} |", f"{count_row} |"
             for j in range(self.size_map):
                 board1 += char_[self.comp_map[i][j].status_] + '|'
-                logging.info(f"self.user = {self.user_map[i][j].status_}")
+                #logging.info(f"self.user = {self.user_map[i][j].status_}")
                 board2 += char_[self.user_map[i][j].status_] + '|'
             count_row += 1
             print(f"{board1}  --  {board2}")
@@ -217,6 +303,7 @@ class Board:
                 ship_= dot_[x][y].ship
                 ship_.life_ -= 1
                 ship_life = ship_.life_
+                logging.info(f" проверка объект ship {ship_}, life {ship_.life_}, {ship_.long}, dot_[{x}][{y}] {dot_[x][y].ship}")
             except Exception as er:
                 logging.error(f"Ошибка ship_= dot_[x][y].ship или ship_life = ship_.life: {er}")
             logging.info(f" ship_ = {ship_}, ship_life = {ship_life}")
@@ -273,8 +360,8 @@ class Ship:
         self.direction = direction # направление корабля, H - горизонт, V - вертик.
         self.row_ = row_ # начальная координата (строка)
         self.col_ = col_ # начальная координата (столбец)
-        self.life_ = long
-        logging.info(f" Создаем ship {long}, {direction}, {row_}, {col_}")
+        self.life_ = life_
+        logging.info(f" Создаем ship {self.long}, {self.direction}, {self.row_}, {self.col_}")
       
     def check_life(self): # Проверка результата попадания
         self.life_ -= 1
@@ -326,7 +413,7 @@ class Ship:
 
 
 
-                        logging.info (f"{row_},{col_}) - {list_}")
+                        #logging.info (f"{row_},{col_}) - {list_}")
 
                         if all(list_):
 
@@ -350,24 +437,24 @@ class Ship:
 
                                 col_start = col_
                                 dots_for_start.append(dots_list[row_ -1][col_start])
-                                logging.info (f"({row_ -1},{col_start}) добавлена в список точек старта")
+                                #logging.info (f"({row_ -1},{col_start}) добавлена в список точек старта")
                                 count_row = 2
                             elif count_row == 4:
                                 col_start = col_
                                 dots_for_start.append(dots_list[row_ - 1][col_start]) # точка из предпоследней строки
-                                logging.info (f"({row_ - 1},{col_start}) добавлена в список точек старта")
+                                #logging.info (f"({row_ - 1},{col_start}) добавлена в список точек старта")
                                 dots_for_start.append(dots_list[row_][col_start]) # точка из последней строки
-                                logging.info (f"({row_ },{col_start}) добавлена в список точек старта")
+                                #logging.info (f"({row_ },{col_start}) добавлена в список точек старта")
                             elif count_row == 3:
                                    col_start = col_
                                    dots_for_start.append(dots_list[row_ -1][col_start])
-                                   logging.info (f"{__LINE__}: ({row_ -1},{col_start}) добавлена в список точек старта")
+                                   #logging.info (f"{__LINE__}: ({row_ -1},{col_start}) добавлена в список точек старта")
                                    count_row = 2
 
 
 
                         else: # в строке row_ среди {long}+2 точках есть занятая
-                            logging.info (f"{__LINE__}: не все True")
+                            #logging.info (f"{__LINE__}: не все True")
 
                             count_row = 0
             if dots_for_start:  # если есть хоть одна подходящая точка для начала корабля
@@ -381,7 +468,7 @@ class Ship:
                     #for row_ in range (0, size_map ):
                     for j in range (0, size_map ):
                         col_, row_ = j ,i
-                        logging.info (f"{__LINE__}: i = {i}, j = {j}")
+                        #logging.info (f"{__LINE__}: i = {i}, j = {j}")
 
                         list_ = [True if dots_list[row_ + j][col_].status_ == 'free' else False for j in range(self.long)]
                         list_w = [f"({dots_list[row_ + j][col_].x}, {dots_list[row_ + j][col_].y})-{ dots_list[row_ + j][col_].status_ }" for j in range(self.long)]
@@ -398,20 +485,20 @@ class Ship:
                             list_w.append(f"({dots_list[row_ + self.long][col_].x}, {dots_list[row_ + self.long][col_].y})-{dots_list[row_ + self.long][col_].status_}" )
                             list_w.insert(0, f"({dots_list[row_ - 1][col_].x}, {dots_list[row_ - 1][col_].y})-{dots_list[row_ - 1][col_].status_}")
 
-                        logging.info (f"{__LINE__}: ({row_},{col_}) - {list_w}")
+                        #logging.info (f"{__LINE__}: ({row_},{col_}) - {list_w}")
 
                         if all(list_):
 
                             if col_ == 0:
                                 count_row += 2
-                                logging.info (f"{__LINE__}: row_ = {row_}, col_ = 0, count_row = {count_row}")
+                                #logging.info (f"{__LINE__}: row_ = {row_}, col_ = 0, count_row = {count_row}")
                             elif (col_ == size_map  - 1 ) and count_row > 1:
                                 count_row = 4
-                                logging.info (f"{__LINE__}: row_ = {row_}, col_ = {col_}, count_row = {count_row}")
+                                #logging.info (f"{__LINE__}: row_ = {row_}, col_ = {col_}, count_row = {count_row}")
                             else:
 
                                 count_row  += 1
-                                logging.info (f"{__LINE__}: row_ = {row_}, col_ = {col_}, count_row = {count_row}")
+                                #logging.info (f"{__LINE__}: row_ = {row_}, col_ = {col_}, count_row = {count_row}")
 
 
 
@@ -424,7 +511,7 @@ class Ship:
 
                                 row_start = row_
                                 dots_for_start.append(dots_list[row_start][col_ - 1])
-                                logging.info (f"{__LINE__}: ({row_start},{col_ - 1}) добавлена в список точек старта")
+                                #logging.info (f"{__LINE__}: ({row_start},{col_ - 1}) добавлена в список точек старта")
                                 count_row = 2
 
                             elif count_row == 4 :
@@ -432,11 +519,11 @@ class Ship:
                                 #col_start = col_
                                 row_start = row_
                                 dots_for_start.append(dots_list[row_start][col_ - 1]) # точка из предпоследней строки
-                                logging.info (f"{__LINE__}: ({row_start},{col_-1}) добавлена в список точек старта")
+                                #logging.info (f"{__LINE__}: ({row_start},{col_-1}) добавлена в список точек старта")
                                 dots_for_start.append(dots_list[row_start][col_]) # точка из последней строки
-                                logging.info (f"{__LINE__}: ({row_start },{col_}) добавлена в список точек старта")
+                                #logging.info (f"{__LINE__}: ({row_start },{col_}) добавлена в список точек старта")
                         else: # в строке row_ среди {long}+2 точках есть занятая
-                            logging.info (f"{__LINE__}: не все True , count_row  = 0")
+                            #logging.info (f"{__LINE__}: не все True , count_row  = 0")
                             count_row = 0
             if dots_for_start:  # если есть хоть одна подходящая точка для начала корабля
                 break # выходим из цикла. Иначе пробуем другое направление корабля
@@ -482,11 +569,7 @@ class Player:
     def comp_move(self, board): # Ход компьютера
 
         s = []
-        '''
-        s = [(board.user_map[i][j].x, board.user_map[i][j].y) for i in range (board.size_map)
-                                                              for j in range (board.size_map)
-                                                              if board.user_map[i][j].status_ in ['free', 'busy']]
-        '''
+
         for i in range(board.size_map):
             for j in range(board.size_map):
                 if board.user_map[i][j].status_ == 'free':
@@ -501,16 +584,16 @@ class Player:
                             m2 = board.user_map[row0][col0].status_
                             logging.info(f" user_map[{row0}][{col0}].status_ = {m2}")
                         except Exception:
-                            logging.error(f" user_map[{row0}][{col0}] вне поля")
-                            flag = False
-                            break
+                            logging.info(f" user_map[{row0}][{col0}] вне поля")
+                            #flag = False
+                            #break
                         else:
-                            if m2 == 'X' and (m1[l][0] and m1[l][1]): # диагональная клетка
+                            if (m2 == 'X' and (m1[l][0] and m1[l][1])) or (m2 == 'killed'): # диагональная раненая клетка или любая убитая клетка
                                 flag = False
                                 break
-                            elif m2 == 'killed':
-                                flag = False
-                                break
+
+
+
                     if flag:
                         s.append((board.user_map[i][j].x, board.user_map[i][j].y))
                         logging.info(f" В список точек хода компа добавлена ({board.user_map[i][j].x},{board.user_map[i][j].y})")
@@ -519,13 +602,13 @@ class Player:
         random_dot_move = random.choice(s)
         dot_move_row_ = random_dot_move[0] + 1
         dot_move_col_ = random_dot_move[1] - board.size_map + 1
-        logging.info(f" выбрана ячейка ({dot_move_row_ },{dot_move_col_})")
+        logging.info(f" Ход компьютера ({dot_move_row_ },{dot_move_col_})")
         print(f"{__LINE__}: Ход компьютера ({dot_move_row_ },{dot_move_col_})")
         board.check_comp_move(random_dot_move[0],random_dot_move[1])
 
         #result = board.check_move(x, y, board.comp_map)
         
-        input(f"{__LINE__}: контроль хода комп, проверь log")
+        #input(f"{__LINE__}: контроль хода комп, проверь log")
 
 
     def user_move(self,board): # Ход игрока
@@ -648,12 +731,17 @@ def main_game():
     player_= Player()
 
 
-    for _ in range(50):
+    while True:
         board_.paint_board()
         player_.make_move(board_)
-        input(f"{__LINE__}: контроль")
+        win_, gamer_win = board_.check_win (player_.next_)
+        if win_:
+            print(f"{__LINE__}: Игра закончена, выиграл {gamer_win}")
+            logging.info("Игра закончена, выиграл {gamer_win}")
+            return True
 
-    input(f"{__LINE__}: stop game")
+
+
 
 
 if __name__ == '__main__':
