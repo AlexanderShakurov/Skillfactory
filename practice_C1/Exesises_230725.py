@@ -114,26 +114,6 @@ class Board:
 
         elif m == '2': # Ранен
             logging.info(f"Обработка ответа Ранен от user ")
-
-            logging.info(f"Поиск среди соседних клеток раненых и убитых ")
-            m1 = [(-1, -1),(-1, 0), (0, -1), (1, 0), (0, 1), (1, 1), (-1, 1), (1, -1)]
-            m2 = self.check_dot(row_, col_, ['X', 'killed'], m1)
-            if len(m2) > 1 :
-                msg = "Некорректный ответ. У раненой клетки не может быть более 1 соседней клетки с кораблем"
-                logging.info(msg)
-
-                return False, msg
-
-            logging.info(f"Поиск среди соседних диагональных клеток раненых или убитых ")
-            m1 = [(-1, -1), (1, 1), (-1, 1), (1, -1)]
-            m2 = self.check_dot(row_, col_, ['X', 'killed'], m1)
-            if m2:
-                msg = "Некорректный ответ. У раненой клетки не может быть диагональной соседней клетки с кораблем"
-                logging.info(msg)
-
-                return False, msg
-
-
             logging.info(
                 f"Проверяем смежные клетки (кроме диагональных) на предмет ранен, для объединения в один корабль")
             m1 = [(-1, 0), (0, -1), (1, 0), (0, 1)]
@@ -145,23 +125,6 @@ class Board:
                 row_2, col_2 = m2[0][0], m2[0][1]
 
                 ship_damaged = self.user_map[row_2][col_2].ship
-                if ship_damaged.long == 2:
-                    msg = f"Некорректный ответ. Три подряд раненые клетки - это должен быть убитый корабль."
-                    logging.error(msg)
-                    return False, msg
-                ''' Не доделано
-                elif ship_damaged == 1:
-                    logging.info(f" Проверяем, есть ли свободные для хода клетки с концов корабля")
-                    delta_row = row_ - row_2
-                    delta_col = col_ - col_2
-                    if delta_row:
-                        if min(row_, row_2) > 0:
-                            row_min  = min(row_, row_2)
-                            col_min = col_
-                        elif max(row_, row_2) < board.size_map - 1:
-                            row_max = max(row_, row_2)
-                            col_max = col_
-                    '''
 
                 
                 self.user_map[row_][col_].status_ = 'X'
@@ -177,7 +140,7 @@ class Board:
                     if not v.long:
                         ship_damaged = v
                         ship_damaged.long = 1
-
+                        self.user_map[row_][col_].status_ = 'X'
                         self.user_map[row_][col_].ship = ship_damaged
                         logging.info(f" точке ({row_}{col_}) присвоен корабль {ship_damaged}")
                         break
@@ -191,8 +154,10 @@ class Board:
 
             self.user_map[row_][col_].status_ = 'killed'
             logging.info(f"Обработка ответа Убит от user ")
+            '''
             logging.info(f"Проверяем корректность ответа ")
             logging.info(f"Ищем соседнюю убитую клетку ")
+            
             m1 = [(-1, -1), (-1, 0), (0, -1), (1, 0), (0, 1), (1, 1), (-1, 1), (1, -1)]
             m2 = self.check_dot(row_, col_, [ 'killed'], m1)
             if m2:
@@ -209,7 +174,7 @@ class Board:
                 logging.info(msg)
 
                 return False, msg
-
+            '''
             logging.info(f"Проверяем смежные клетки (кроме диагональных) на предмет ранен, для объединения в один корабль")
             m1 = [(-1, 0), (0, -1), (1, 0), (0, 1)]
             m2 = self.check_dot(row_, col_, ['X'], m1)
@@ -352,97 +317,7 @@ class Board:
             print(f"{board1}  --  {board2}")
         return True
 
-    def check_comp_move(self, x, y, player_obj, player_type = 'user', res = None): #Получение от user результата хода comp
-        m1 = {'1': 'Мимо', '2': 'Ранен', '3': 'Убит'}
-        m2 = {'1': 'T', '2': 'X', '3': 'Убит'}
-        while True:
 
-            if player_type == 'user':
-                res = player_obj.user_answer() # получение ручного ответа от user
-
-            '''
-            logging.info(f" ждем ответа от user")
-            while True:
-                m = input (f"Введите результат хода. 1 - мимо, 2 -ранен, 3 - убит :")
-                m1 = {'1':'Мимо', '2': 'Ранен', '3': 'Убит'}
-                m2 = {'1':'T', '2': 'X', '3': 'Убит'}
-                res = re.match(r'([1-3]{1})',m)
-            '''
-
-            if res:
-                logging.info(f"ответ user: {m1[res.group()]}")
-                print(f"{__LINE__}: Результат хода - {m1[res.group()]}")
-                res1, msg1 = self.update_user_map (res, x, y)  #Обновление карты по итогам хода.
-                if res1:
-                    break
-                else:
-                    print(f"{__LINE__}: {msg1}")
-            else:
-                logging.info(f"некорректный выбор ответа")
-                print(f"{__LINE__}:некорректный выбор ответа, повторите ввод")
-
-
-
-    def check_move(self, x, y, dot_ ): # Проверка введенных координат user
-        logging.info(f" start ({x},{y}) - {dot_[x][y].status_}")
-        if dot_[x][y].status_ == 'free':
-            result = 'Мимо'
-
-            dot_[x][y].status_ = 'T'
-            logging.info(f" dot_[{x}][{y}].status_ = 'T'")
-        elif dot_[x][y].status_ == 'busy':
-            logging.info(f" dot_[x][y].status_ == 'busy'")
-            try:
-                ship_= dot_[x][y].ship
-                ship_.life_ -= 1
-                ship_life = ship_.life_
-                logging.info(f" проверка объект ship {ship_}, life {ship_.life_}, {ship_.long}, dot_[{x}][{y}] {dot_[x][y].ship}")
-            except Exception as er:
-                logging.error(f"Ошибка ship_= dot_[x][y].ship или ship_life = ship_.life: {er}")
-            logging.info(f" ship_ = {ship_}, ship_life = {ship_life}")
-            if ship_life > 0 :
-                result = 'Ранен'
-                dot_[x][y].status_ = 'X'
-                logging.info(f" dot_[{x}][{y}].status_ = 'X'")
-            else:
-                result = 'Убит'
-                row0  = ship_.row_
-                col0 = ship_.col_
-                direct_ = ship_.direction
-                for i in range(ship_.long):
-                    x = row0 + (0 if direct_ == 'H' else i)
-                    y = col0 + (0 if direct_ == 'V' else i)
-                    dot_[x][y].status_ = 'killed'
-                logging.info(f" dot_[{x}][{y}].status_ = 'Убит'")
-        else:
-            logging.info(f"Такой ход уже был")
-
-            result = False
-        logging.info(f"Результат хода - {result}")
-
-        return result
-
-    def update_coordinate(self,x,y):
-
-
-        """обновление координат
-           прорисовка поля"
-           x,y - очередной ход
-           x = 0 , y = 0 - первичное создание поля"""
-
-        pass
-
-
-
-    def strike(self, gamer): # Ход игрока или компьютера
-
-        """ gamer in ['comp', 'user']
-        x,y  - координаты выстрела
-        Проверяет координаты на корректность
-        Проверяет координаты на попадание
-        Передает координаты update_Board
-        Возвращает x, y """
-        pass
 
 
 
@@ -710,7 +585,8 @@ class Player:
                     try:
                         status_dot = board.comp_map[x][y].status_
                         logging.info(f" проверяем board_.comp_map[{x},{y}].status_ = {status_dot}")
-                        result = board.check_move(x, y, board.comp_map)
+                        #result = board.check_move(x, y, board.comp_map)
+                        result = self.check_user_move(x, y, board.comp_map)
                         if result:
                             print(f"{__LINE__}: Результат хода {result}")
                             break
@@ -733,23 +609,152 @@ class Player:
             if player_type == 'user':
                 res = self.user_answer() # получение ручного ответа от user
 
-
-
             if res:
                 logging.info(f"ответ user: {m1[res.group()]}")
                 print(f"{__LINE__}: Результат хода - {m1[res.group()]}")
-                res1, msg1 = board.update_user_map (res, x, y)  #Обновление карты по итогам хода.
-                if res1:
+                res11, msg11 = self.check_error_on_user_answer(board, res, x, y)
+                logging.info(f" Результат проверки user's answer {res11},{msg11}")
+                if res11:
+                    res1, msg1 = board.update_user_map (res, x, y)  #Обновление карты по итогам хода.
                     break
                 else:
-                    print(f"{__LINE__}: {msg1}")
-                    logging.info(f" Ответ user {msg1}")
+                    print(f"{__LINE__}: {msg11}")
+                    logging.info(f" Ответ user {msg11}")
             else:
                 logging.info(f"некорректный выбор ответа")
                 print(f"{__LINE__}:некорректный выбор ответа, повторите ввод")
 
-    def user_answer(self): # Получение ответа от игрока user на ход comp
-        logging.info(f" ждем ответа от user")
+    def check_user_move(self, x, y, dot_ ): # Проверка введенных координат user
+        logging.info(f" start ({x},{y}) - {dot_[x][y].status_}")
+        if dot_[x][y].status_ == 'free':
+            result = 'Мимо'
+
+            dot_[x][y].status_ = 'T'
+            logging.info(f" dot_[{x}][{y}].status_ = 'T'")
+        elif dot_[x][y].status_ == 'busy':
+            logging.info(f" dot_[x][y].status_ == 'busy'")
+            try:
+                ship_= dot_[x][y].ship
+                ship_.life_ -= 1
+                ship_life = ship_.life_
+                logging.info(f" проверка объект ship {ship_}, life {ship_.life_}, {ship_.long}, dot_[{x}][{y}] {dot_[x][y].ship}")
+            except Exception as er:
+                logging.error(f"Ошибка ship_= dot_[x][y].ship или ship_life = ship_.life: {er}")
+            logging.info(f" ship_ = {ship_}, ship_life = {ship_life}")
+            if ship_life > 0 :
+                result = 'Ранен'
+                dot_[x][y].status_ = 'X'
+                logging.info(f" dot_[{x}][{y}].status_ = 'X'")
+            else:
+                result = 'Убит'
+                row0  = ship_.row_
+                col0 = ship_.col_
+                direct_ = ship_.direction
+                for i in range(ship_.long):
+                    x = row0 + (0 if direct_ == 'H' else i)
+                    y = col0 + (0 if direct_ == 'V' else i)
+                    dot_[x][y].status_ = 'killed'
+                logging.info(f" dot_[{x}][{y}].status_ = 'Убит'")
+        else:
+            logging.info(f"Такой ход уже был")
+
+            result = False
+        logging.info(f"Результат хода - {result}")
+
+        return result
+
+    # Редакция ********************************************************88
+    def check_error_on_user_answer(self, board, res, x, y): # Проверяем ответ user на корректность
+          row_ = x
+          col_ = y - board.size_map
+          m = res.group()
+          logging.info(f"Проверяем ответ user {m} на ход comp ({x},{y})")
+
+          if m == '1': # Ход мимо
+              #board.user_map[row_][col_].status_ = 'T'
+              return True, ''
+
+          elif m == '2': # Ранен
+              logging.info(f"Обработка ответа Ранен от user ")
+
+              logging.info(f"Поиск среди соседних клеток раненых и убитых ")
+              m1 = [(-1, -1),(-1, 0), (0, -1), (1, 0), (0, 1), (1, 1), (-1, 1), (1, -1)]
+              m2 = board.check_dot(row_, col_, ['X', 'killed'], m1)
+              if len(m2) > 1 :
+                  msg = "Некорректный ответ. У раненой клетки не может быть более 1 соседней клетки с кораблем"
+                  logging.info(msg)
+
+                  return False, msg
+
+              logging.info(f"Поиск среди соседних диагональных клеток раненых или убитых ")
+              m1 = [(-1, -1), (1, 1), (-1, 1), (1, -1)]
+              m2 = board.check_dot(row_, col_, ['X', 'killed'], m1)
+              if m2:
+                  msg = "Некорректный ответ. У раненой клетки не может быть диагональной соседней клетки с кораблем"
+                  logging.info(msg)
+
+                  return False, msg
+
+
+              logging.info(
+                  f"Проверяем смежные клетки (кроме диагональных) на предмет ранен, для объединения в один корабль")
+              m1 = [(-1, 0), (0, -1), (1, 0), (0, 1)]
+              m2 = board.check_dot(row_, col_, ['X'], m1)
+
+
+              if m2:
+                  logging.info(f"Найдена соседняя раненая точка {m2} ")
+                  row_2, col_2 = m2[0][0], m2[0][1]
+
+                  ship_damaged = board.user_map[row_2][col_2].ship
+                  if ship_damaged.long == 2:
+                      msg = f"Некорректный ответ. Три подряд раненые клетки - это должен быть убитый корабль."
+                      logging.error(msg)
+                      return False, msg
+                  ''' Не доделано                                                                                                         
+                  elif ship_damaged == 1:                                                                                                 
+                      logging.info(f" Проверяем, есть ли свободные для хода клетки с концов корабля")                                     
+                      delta_row = row_ - row_2                                                                                            
+                      delta_col = col_ - col_2                                                                                            
+                      if delta_row:                                                                                                       
+                          if min(row_, row_2) > 0:                                                                                        
+                              row_min  = min(row_, row_2)                                                                                 
+                              col_min = col_                                                                                              
+                          elif max(row_, row_2) < board.size_map - 1:                                                                     
+                              row_max = max(row_, row_2)                                                                                  
+                              col_max = col_                                                                                              
+                      '''
+
+
+          elif m == '3': # Убит
+
+              board.user_map[row_][col_].status_ = 'killed'
+              logging.info(f"Обработка ответа Убит от user ")
+              logging.info(f"Проверяем корректность ответа ")
+              logging.info(f"Ищем соседнюю убитую клетку ")
+              m1 = [(-1, -1), (-1, 0), (0, -1), (1, 0), (0, 1), (1, 1), (-1, 1), (1, -1)]
+              m2 = board.check_dot(row_, col_, [ 'killed'], m1)
+              if m2:
+                  msg = "Некорректный ответ. У убитой  клетки не может быть  соседней клетки с убитым кораблем"
+                  logging.info(msg)
+
+                  return False, msg
+
+              logging.info(f"Ищем соседнюю по диагонали раненую или убитую клетку ")
+              m1 = [(-1, -1), (-1, 0), (0, -1), (1, 0), (0, 1), (1, 1), (-1, 1), (1, -1)]
+              m2 = board.check_dot(row_, col_, ['X','killed'], m1)
+              if m2:
+                  msg = "Некорректный ответ. У убитой  клетки не может быть диагональной соседней клетки с кораблем"
+                  logging.info(msg)
+
+                  return False, msg
+
+
+          return True, ''
+
+    
+    def user_answer(self): # Получе        #input(f"{__LINE__}: контроль обработки ответа user")                                                                                       ние ответа от игрока user на ход comp
+        logging.info(f" ждем ответа        return True, ''                                                                                                                              от user")
         while True:
             m = input(f"Введите результат хода. 1 - мимо, 2 -ранен, 3 - убит :")
 
@@ -763,74 +768,6 @@ class Player:
 
                 logging.info(f" принят корректный ответ user {res.group()}")
                 return res
-
-    def check_shot_coordinates(func):  # декоратор проверки правильности введенных координат
-        # на предмет непересечения с уже сделанными ходами
-
-
-        def wrapper(*args, **kwargs):
-            while True:
-                x, y = func(*args, **kwargs)
-                print(f"{__LINE__}: ({x},{y})")
-                try:
-                    status_ = args[1][x][y].status_
-                    print(f"{__LINE__}: args[1] = args[{x}][{y}].status_ = {status_}")
-
-
-                    if status_ not in ['free', 'busy']:
-                        print(f"{__LINE__}: в эту клетку ранее уже был сделан ход. Повторите ввод")
-                    else:
-                        print(f"{__LINE__}: ход ({x},{y}) принят")
-                        break
-                except IndexError:
-                    print(f"{__LINE__}: введены координаты вне границ поля. Повторите ввод")
-
-
-            return x, y
-
-
-        return wrapper
-
-    @check_shot_coordinates
-    def take_shot(self,dots_list_): # ход игрока
-        m  = input(f"Ход игрока. Введите координаты клетки, XY. X - по вертикали, Y -  по горизонтали :")
-        m = re.match(r'(\d{1})\W*(\d{1})', m)
-        x, y  = m.group(1), m.group(2)
-        print(f"{__LINE__} Вы ввели ({x},{y})")
-        return int(x), int(y)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -862,7 +799,7 @@ if __name__ == '__main__':
     main_game()
     #board= Board(6)
 
-    
+
 
 
 
