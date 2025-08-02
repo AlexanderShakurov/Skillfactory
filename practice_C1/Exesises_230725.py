@@ -352,13 +352,23 @@ class Board:
             print(f"{board1}  --  {board2}")
         return True
 
-    def check_comp_move(self, x, y): #Получение от user результата хода comp
-        logging.info(f" ждем ответа от user")
+    def check_comp_move(self, x, y, player_obj, player_type = 'user', res = None): #Получение от user результата хода comp
+        m1 = {'1': 'Мимо', '2': 'Ранен', '3': 'Убит'}
+        m2 = {'1': 'T', '2': 'X', '3': 'Убит'}
         while True:
-            m = input (f"Введите результат хода. 1 - мимо, 2 -ранен, 3 - убит :")
-            m1 = {'1':'Мимо', '2': 'Ранен', '3': 'Убит'}
-            m2 = {'1':'T', '2': 'X', '3': 'Убит'}
-            res = re.match(r'([1-3]{1})',m)
+
+            if player_type == 'user':
+                res = player_obj.user_answer() # получение ручного ответа от user
+
+            '''
+            logging.info(f" ждем ответа от user")
+            while True:
+                m = input (f"Введите результат хода. 1 - мимо, 2 -ранен, 3 - убит :")
+                m1 = {'1':'Мимо', '2': 'Ранен', '3': 'Убит'}
+                m2 = {'1':'T', '2': 'X', '3': 'Убит'}
+                res = re.match(r'([1-3]{1})',m)
+            '''
+
             if res:
                 logging.info(f"ответ user: {m1[res.group()]}")
                 print(f"{__LINE__}: Результат хода - {m1[res.group()]}")
@@ -366,7 +376,7 @@ class Board:
                 if res1:
                     break
                 else:
-                    print(f"{__LINE__}: {msg}")
+                    print(f"{__LINE__}: {msg1}")
             else:
                 logging.info(f"некорректный выбор ответа")
                 print(f"{__LINE__}:некорректный выбор ответа, повторите ввод")
@@ -641,15 +651,15 @@ class Player:
        logging.info(f"self.next_ = {self.next_}")
        if self.next_ :
 
-          self.user_move(board)
+          self.make_user_move(board)
        else:
            logging.info(f"Ход компьютера")
            print(f"Ход компьютера")
-           self.comp_move(board)
+           self.make_comp_move(board)
 
        self.next_= not self.next_
 
-    def comp_move(self, board): # Ход компьютера
+    def make_comp_move(self, board): # Ход компьютера
 
         s = []
 
@@ -660,23 +670,7 @@ class Player:
 
                     m1 = [(-1, -1), (-1, 0), (0, -1), (1, 0), (0, 1), (-1, 1), (1, -1), (1, 1)]
                     m2 = board.check_dot(i,j,['X','killed'], m1)
-                    '''
-                    flag = True # если все точки вокруг будут подходить, то центральная точка попадет в список возможных точек хода comp
-                    for l in range(len(m1)):
-                        row0 = i + m1[l][0]
-                        col0 = j + m1[l][1]
 
-                        if row0 in range(board.size_map) and col0 in range(board.size_map):
-
-                            m2 = board.user_map[row0][col0].status_
-                            logging.info(f" user_map[{row0}][{col0}].status_ = {m2}")
-                        
-                            if (m2 == 'X' and (m1[l][0] and m1[l][1])) or (m2 == 'killed'): # диагональная раненая клетка или любая убитая клетка
-                                flag = False
-                                break
-
-
-                    '''
                     if not m2:   #flag:
                         s.append((board.user_map[i][j].x, board.user_map[i][j].y))
                         logging.info(f" В список точек хода компа добавлена ({board.user_map[i][j].x},{board.user_map[i][j].y})")
@@ -687,14 +681,15 @@ class Player:
         dot_move_col_ = random_dot_move[1] - board.size_map + 1
         logging.info(f" Ход компьютера ({dot_move_row_ },{dot_move_col_})")
         print(f"{__LINE__}: Ход компьютера ({dot_move_row_ },{dot_move_col_})")
-        board.check_comp_move(random_dot_move[0],random_dot_move[1])
+        self.check_comp_move(random_dot_move[0],random_dot_move[1], board)
+        #board.check_comp_move(random_dot_move[0],random_dot_move[1])
 
         #result = board.check_move(x, y, board.comp_map)
         
         #input(f"{__LINE__}: контроль хода комп, проверь log")
 
 
-    def user_move(self,board): # Ход игрока
+    def make_user_move(self,board): # Ход игрока
         logging.info(f"Ход игрока")
         while True:
             print(f"Ход игрока. Введите координаты XY")
@@ -730,8 +725,44 @@ class Player:
                 logging.error(f" неверные координаты {m}")
                 print(f"Недопустимые символы, повторите ввод")
 
+    def check_comp_move(self, x, y, board, player_type = 'user', res = None): #Получение от user результата хода comp
+        m1 = {'1': 'Мимо', '2': 'Ранен', '3': 'Убит'}
+        m2 = {'1': 'T', '2': 'X', '3': 'Убит'}
+        while True:
+
+            if player_type == 'user':
+                res = self.user_answer() # получение ручного ответа от user
 
 
+
+            if res:
+                logging.info(f"ответ user: {m1[res.group()]}")
+                print(f"{__LINE__}: Результат хода - {m1[res.group()]}")
+                res1, msg1 = board.update_user_map (res, x, y)  #Обновление карты по итогам хода.
+                if res1:
+                    break
+                else:
+                    print(f"{__LINE__}: {msg1}")
+                    logging.info(f" Ответ user {msg1}")
+            else:
+                logging.info(f"некорректный выбор ответа")
+                print(f"{__LINE__}:некорректный выбор ответа, повторите ввод")
+
+    def user_answer(self): # Получение ответа от игрока user на ход comp
+        logging.info(f" ждем ответа от user")
+        while True:
+            m = input(f"Введите результат хода. 1 - мимо, 2 -ранен, 3 - убит :")
+
+            res = re.match(r'([1-3]{1})', m)
+
+            if not res:
+
+                logging.info(f"некорректный выбор ответа")
+                print(f"{__LINE__}:некорректный выбор ответа, повторите ввод")
+            else:
+
+                logging.info(f" принят корректный ответ user {res.group()}")
+                return res
 
     def check_shot_coordinates(func):  # декоратор проверки правильности введенных координат
         # на предмет непересечения с уже сделанными ходами
