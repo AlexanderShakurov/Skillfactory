@@ -53,10 +53,10 @@ class Board:
         #logging.info(f"Создан comp_map")
         self.user_map = [[Dot(j, i) for i in range(0 + self.size_map, 2 * self.size_map )] for j in range(0, self.size_map)]
         self.ships_user = self.create_ships_user()
-        self.ships_comp = self.create_ships()[1]
+        #self.ships_comp = self.create_ships()[1]
 
         # список точек доски gamer
-        self.comp_map = self.create_ships()[0] # карта поля игрока comp с введенными координатами кораблей
+        self.comp_map, self.ships_comp = self.create_ships() # карта поля игрока comp с введенными координатами кораблей
         logging.info(f"В comp_map внесены координаты кораблей")
 
     def check_win(self, next_): #Проверка наступления выигрыша
@@ -80,25 +80,24 @@ class Board:
 
 
         
-    def check_dot(self, x, y):
-        logging.info(f"Ищем соседнюю раненую клетку для точки ({x},{y})")
+    def check_dot(self, x, y, status_dot, m1):
+        logging.info(f"Ищем соседнюю клетку типа {status_dot} для точки ({x},{y})")
 
-        m1 = [(-1, 0), (0, -1), (1, 0), (0, 1)]
+
         s =[]
         for l in range(len(m1)):
             row0 = x + m1[l][0]
             col0 = y + m1[l][1]
 
-            try:
+            #try:
+            if (row0 in range(self.size_map)) and (col0 in range(self.size_map)):
                 m2 = self.user_map[row0][col0].status_
                 logging.info(f" user_map[{row0}][{col0}].status_ = {m2}")
-            except Exception:
-                logging.error(f" user_map[{row0}][{col0}] вне поля")
 
 
-            else:
-                if m2 == 'X' :
-                    logging.info(f" Найдена соседняя раненая клетка ({row0},{col0})")
+
+                if m2 in status_dot :
+                    logging.info(f" Найдена соседняя  клетка {status_dot} ({row0},{col0})")
 
                     s.append((row0,col0))
 
@@ -115,15 +114,57 @@ class Board:
 
         elif m == '2': # Ранен
             logging.info(f"Обработка ответа Ранен от user ")
-            self.user_map[row_][col_].status_ = 'X'
+
+            logging.info(f"Поиск среди соседних клеток раненых и убитых ")
+            m1 = [(-1, -1),(-1, 0), (0, -1), (1, 0), (0, 1), (1, 1), (-1, 1), (1, -1)]
+            m2 = self.check_dot(row_, col_, ['X', 'killed'], m1)
+            if len(m2) > 1 :
+                msg = "Некорректный ответ. У раненой клетки не может быть более 1 соседней клетки с кораблем"
+                logging.info(msg)
+
+                return False, msg
+
+            logging.info(f"Поиск среди соседних диагональных клеток раненых или убитых ")
+            m1 = [(-1, -1), (1, 1), (-1, 1), (1, -1)]
+            m2 = self.check_dot(row_, col_, ['X', 'killed'], m1)
+            if m2:
+                msg = "Некорректный ответ. У раненой клетки не может быть диагональной соседней клетки с кораблем"
+                logging.info(msg)
+
+                return False, msg
+
+
             logging.info(
                 f"Проверяем смежные клетки (кроме диагональных) на предмет ранен, для объединения в один корабль")
-            m2 = self.check_dot(row_, col_)
+            m1 = [(-1, 0), (0, -1), (1, 0), (0, 1)]
+            m2 = self.check_dot(row_, col_, ['X'], m1)
+
+
             if m2:
                 logging.info(f"Найдена соседняя раненая точка {m2} ")
                 row_2, col_2 = m2[0][0], m2[0][1]
 
                 ship_damaged = self.user_map[row_2][col_2].ship
+                if ship_damaged.long == 2:
+                    msg = f"Некорректный ответ. Три подряд раненые клетки - это должен быть убитый корабль."
+                    logging.error(msg)
+                    return False, msg
+                ''' Не доделано
+                elif ship_damaged == 1:
+                    logging.info(f" Проверяем, есть ли свободные для хода клетки с концов корабля")
+                    delta_row = row_ - row_2
+                    delta_col = col_ - col_2
+                    if delta_row:
+                        if min(row_, row_2) > 0:
+                            row_min  = min(row_, row_2)
+                            col_min = col_
+                        elif max(row_, row_2) < board.size_map - 1:
+                            row_max = max(row_, row_2)
+                            col_max = col_
+                    '''
+
+                
+                self.user_map[row_][col_].status_ = 'X'
                 ship_damaged.long +=1
                 self.user_map[row_][col_].ship = ship_damaged
                 logging.info(f"Получаем ссылку на корабль из соседней раненой клетки {ship_damaged} ")
@@ -150,39 +191,78 @@ class Board:
 
             self.user_map[row_][col_].status_ = 'killed'
             logging.info(f"Обработка ответа Убит от user ")
-            logging.info(f"Проверяем смежные клетки (кроме диагональных) на предмет ранен, для объединения в один корабль")
-            m2 = self.check_dot(row_, col_)
+            logging.info(f"Проверяем корректность ответа ")
+            logging.info(f"Ищем соседнюю убитую клетку ")
+            m1 = [(-1, -1), (-1, 0), (0, -1), (1, 0), (0, 1), (1, 1), (-1, 1), (1, -1)]
+            m2 = self.check_dot(row_, col_, [ 'killed'], m1)
             if m2:
-                logging.info(f"Найдена соседняя раненая точка {m2} ")
-                row_2, col_2 = m2[0][0], m2[0][1]
-                self.user_map[row_2][col_2].status_ = 'killed'
+                msg = "Некорректный ответ. У убитой  клетки не может быть  соседней клетки с убитым кораблем"
+                logging.info(msg)
 
-                ship_killed = self.user_map[row_2][col_2].ship
-                logging.info(f" ship_killed = {ship_killed}")
-                if ship_killed.long == 2:
-                    ship_killed.long = 3
-                    ship_killed.life = 0
-                    delta_row = row_ - row_2
-                    delta_col = col_ - col_2
-                    row_3 = -2 * (delta_row) + row_
-                    col_3 = -2 * (delta_col) + col_
-                    logging.info(f" Длина убитого корабля 3, третья точка ({row_3},{col_3}")
+                return False, msg
+
+            logging.info(f"Ищем соседнюю по диагонали раненую или убитую клетку ")
+            m1 = [(-1, -1), (-1, 0), (0, -1), (1, 0), (0, 1), (1, 1), (-1, 1), (1, -1)]
+            m2 = self.check_dot(row_, col_, ['X','killed'], m1)
+            if m2:
+                msg = "Некорректный ответ. У убитой  клетки не может быть диагональной соседней клетки с кораблем"
+                logging.info(msg)
+
+                return False, msg
+
+            logging.info(f"Проверяем смежные клетки (кроме диагональных) на предмет ранен, для объединения в один корабль")
+            m1 = [(-1, 0), (0, -1), (1, 0), (0, 1)]
+            m2 = self.check_dot(row_, col_, ['X'], m1)
+
+            #m2 = self.check_dot(row_, col_)
+            if m2:
+                if len(m2) == 2:
+
+                    logging.info(f"Найдено 2 соседние раненые точки {m2} ")
+                    row_2, col_2 = m2[0][0], m2[0][1]
+                    row_3, col_3 = m2[1][0], m2[1][1]
+                    self.user_map[row_2][col_2].status_ = 'killed'
                     self.user_map[row_3][col_3].status_ = 'killed'
-                if ship_killed.long == 1:
-                    ship_killed.long = 2
-                    ship_killed.life = 0
-                    logging.info(f" Длина убитого корабля 2")
-            else:
-                logging.info(f"Cоседняя раненая клетка не найдена,  {m2} ")
-                logging.info(f" Присваиваем  свободный корабль точке {row_}, {col_}")
-                for k,v in self.ships_user.items():
-                    logging.info(f" {v.long}")
-                    if not v.long:
-                        ship_killed = v
-                        ship_killed.long = 1
+                    ship_killed = self.user_map[row_2][col_2].ship
+                    ship_repaired = self.user_map[row_3][col_3].ship # один из кораблей освобождается от привязки к точке
+                    self.user_map[row_][col_].ship = ship_killed
+                    self.user_map[row_2][col_2].ship = ship_killed
+                    self.user_map[row_3][col_3].ship = ship_killed
+                    ship_killed.life_ = 0
+                    ship_killed.long = 3
+                    ship_repaired.life = None
+
+                elif len(m2) == 1:
+                    logging.info(f"Найдена 1 смежная раненая точка {m2} ")
+                    row_2, col_2 = m2[0][0], m2[0][1]
+                    self.user_map[row_2][col_2].status_ = 'killed'
+
+                    ship_killed = self.user_map[row_2][col_2].ship
+                    logging.info(f" ship_killed = {ship_killed}")
+                    if ship_killed.long == 2:
+                        ship_killed.long = 3
                         ship_killed.life = 0
-                        self.user_map[row_][col_].ship = ship_killed
-                        break
+                        delta_row = row_ - row_2
+                        delta_col = col_ - col_2
+                        row_3 = -2 * (delta_row) + row_
+                        col_3 = -2 * (delta_col) + col_
+                        logging.info(f" Длина убитого корабля 3, третья точка ({row_3},{col_3}")
+                        self.user_map[row_3][col_3].status_ = 'killed'
+                    if ship_killed.long == 1:
+                        ship_killed.long = 2
+                        ship_killed.life = 0
+                        logging.info(f" Длина убитого корабля 2")
+                else:
+                    logging.info(f"Cоседняя раненая клетка не найдена,  {m2} ")
+                    logging.info(f" Присваиваем  свободный корабль точке {row_}, {col_}")
+                    for k,v in self.ships_user.items():
+                        logging.info(f" {v.long}")
+                        if not v.long:
+                            ship_killed = v
+                            ship_killed.long = 1
+                            ship_killed.life = 0
+                            self.user_map[row_][col_].ship = ship_killed
+                            break
 
                 #s = [self.ships_user[k] for k,v in self.ships_user.items() if not self.ships_user[k].long]
                 #ship_killed = s[0]
@@ -191,7 +271,7 @@ class Board:
 
 
         #input(f"{__LINE__}: контроль обработки ответа user")
-
+        return True, ''
 
     def create_ships_user(self):  # создаем объекты кораблей user
         ships_list1 = sorted(self.ships_list, reverse=True)
@@ -282,8 +362,11 @@ class Board:
             if res:
                 logging.info(f"ответ user: {m1[res.group()]}")
                 print(f"{__LINE__}: Результат хода - {m1[res.group()]}")
-                self.update_user_map (res, x, y)  #Обновление карты по итогам хода.
-                break
+                res1, msg1 = self.update_user_map (res, x, y)  #Обновление карты по итогам хода.
+                if res1:
+                    break
+                else:
+                    print(f"{__LINE__}: {msg}")
             else:
                 logging.info(f"некорректный выбор ответа")
                 print(f"{__LINE__}:некорректный выбор ответа, повторите ввод")
@@ -574,27 +657,27 @@ class Player:
             for j in range(board.size_map):
                 if board.user_map[i][j].status_ == 'free':
                     logging.info(f" Проверяем точку ({i},{j})  на соседство с ранеными или убитыми кораблями")
+
                     m1 = [(-1, -1), (-1, 0), (0, -1), (1, 0), (0, 1), (-1, 1), (1, -1), (1, 1)]
+                    m2 = board.check_dot(i,j,['X','killed'], m1)
+                    '''
                     flag = True # если все точки вокруг будут подходить, то центральная точка попадет в список возможных точек хода comp
-                    for l in range(8):
+                    for l in range(len(m1)):
                         row0 = i + m1[l][0]
                         col0 = j + m1[l][1]
 
-                        try:
+                        if row0 in range(board.size_map) and col0 in range(board.size_map):
+
                             m2 = board.user_map[row0][col0].status_
                             logging.info(f" user_map[{row0}][{col0}].status_ = {m2}")
-                        except Exception:
-                            logging.info(f" user_map[{row0}][{col0}] вне поля")
-                            #flag = False
-                            #break
-                        else:
+                        
                             if (m2 == 'X' and (m1[l][0] and m1[l][1])) or (m2 == 'killed'): # диагональная раненая клетка или любая убитая клетка
                                 flag = False
                                 break
 
 
-
-                    if flag:
+                    '''
+                    if not m2:   #flag:
                         s.append((board.user_map[i][j].x, board.user_map[i][j].y))
                         logging.info(f" В список точек хода компа добавлена ({board.user_map[i][j].x},{board.user_map[i][j].y})")
 
