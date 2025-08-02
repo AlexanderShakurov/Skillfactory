@@ -50,8 +50,10 @@ class Board:
         self.ships_list = ships_list
 
         self.comp_map = [[Dot(j, i) for i in range(0, self.size_map )] for j in range(0, self.size_map )] # список точек доски comp
+        #self.left_map = [[Dot(j, i) for i in range(0, self.size_map )] for j in range(0, self.size_map )] # список точек доски left
         #logging.info(f"Создан comp_map")
         self.user_map = [[Dot(j, i) for i in range(0 + self.size_map, 2 * self.size_map )] for j in range(0, self.size_map)]
+        # self.right_map = [[Dot(j, i) for i in range(0, self.size_map )] for j in range(0, self.size_map )] # список точек доски right
         self.ships_user = self.create_ships_user()
         #self.ships_comp = self.create_ships()[1]
 
@@ -508,6 +510,108 @@ class Ship:
         else:
             return False, False, False, False
 
+    def find_free_place_new(self, dots_list, size_map):
+        # dots_list - текущее состояние точек поля
+        """ случайно выбирается тип размещения, H - горизонтальный или V - вертикальный
+            и координаты начала корабля"""
+        type_boat_index = random.randrange(0, size_map) % 2  # 0 - вертикальный,  не 0 - горизонтальный
+        self.direction = 'H' if type_boat_index else 'V'
+        s = ['H', 'V'] if type_boat_index else ['V', 'H']
+
+        for self.direction in s: #
+            logging.info(f" длина корабля {self.long}, направление {self.direction} ")
+
+
+            #  Горизонтальное расположение
+
+            s = {}
+            """ Идем по очереди, по строкам. Проверяем точки от (col_, row_) до (col_ + long_, row_
+            на dot.staus_ == 'free'
+            Если все точки 'free', увеличиваем счетчик 
+            Если набралось три подряд идущие s[i] = True, отмечаем точку (col_ + 1, row_ + 1) как одну из возможных
+            точек начала корабля.
+            Добывляем найденную точку в список точек, из которого потом случайным образом будет выбрана одна 
+            и присвоена данному экземпляру корабля в качестве начальной."""
+            dots_for_start = [] # список возможных точек начала корабля
+
+            #if self.direction == 'H'  :
+            for i in range(0, size_map):
+
+                count_row = 0
+                #for row_ in range (0, size_map ):
+                for j in range (size_map ):
+                    if self.direction == 'H'
+                        col_, row_ = i, j
+                    else:
+                        col_, row_ = j, i
+
+                    list_ = [True if dots_list[row_][col_ + j].status_ == 'free' else False for j in range(self.long)]
+
+                    if col_ == 0 :
+                        list_.append(True if dots_list[row_][col_].status_ == 'free' else False )
+
+                    elif col_ == size_map - 1 :
+                        list_.insert(0,True if dots_list[row_][col_ - 1].status_ == 'free' else False)
+                    else:
+                        list_.append(True if dots_list[row_][col_].status_ == 'free' else False )
+                        list_.insert(0, True if dots_list[row_][col_ - 1].status_ == 'free' else False)
+
+                    if all(list_):
+
+                        if row_ == 0:
+                            count_row += 2
+                            #logging.info (f"{__LINE__}: row_ = {row_}")
+                        elif (row_ == size_map  - 1 ) and count_row > 1:
+                            count_row = 4
+                            #logging.info (f"{__LINE__}: row_ = {row_}")
+                        else:
+                            #logging.info (f"{__LINE__}: row_ = {row_}")
+                            count_row  += 1
+                        #logging.info (f" count_row = {count_row}")
+
+
+                        if count_row == 3:
+                            # если набралось три подряд строки с long + 2 точками 'free'
+                            # добавляем точку в список возможных точек начала корабля
+
+                            #col_start = col_ + 1 if col_ else col_
+
+                            col_start = col_
+                            dots_for_start.append(dots_list[row_ -1][col_start])
+                            #logging.info (f"({row_ -1},{col_start}) добавлена в список точек старта")
+                            count_row = 2
+                        elif count_row == 4:
+                            col_start = col_
+                            dots_for_start.append(dots_list[row_ - 1][col_start]) # точка из предпоследней строки
+                            #logging.info (f"({row_ - 1},{col_start}) добавлена в список точек старта")
+                            dots_for_start.append(dots_list[row_][col_start]) # точка из последней строки
+                            #logging.info (f"({row_ },{col_start}) добавлена в список точек старта")
+                        elif count_row == 3:
+                               col_start = col_
+                               dots_for_start.append(dots_list[row_ -1][col_start])
+                               #logging.info (f"{__LINE__}: ({row_ -1},{col_start}) добавлена в список точек старта")
+                               count_row = 2
+
+
+
+                    else: # в строке row_ среди {long}+2 точках есть занятая
+                        #logging.info (f"{__LINE__}: не все True")
+
+                        count_row = 0
+            if dots_for_start:  # если найдена есть хоть одна подходящая точка для начала корабля
+                break # выходим из цикла. Иначе пробуем другое направление корабля
+
+
+        logging.info (f"{__LINE__}: количество точек {len(dots_for_start)}")
+        if dots_for_start: # если есть хоть одна подходящая точка для начала корабля
+            random_dot_start = random.choice(dots_for_start)
+
+            self.row_ = random_dot_start.x
+            self.col_ = random_dot_start.y
+            logging.info (f"{__LINE__}: (x,y) = ({self.row_},{self.col_ }) - {self.direction}")
+            return True, self.row_,  self.col_ , self.direction
+        else:
+            return False, False, False, False
 
 class Player:
 
@@ -769,6 +873,119 @@ class Player:
                 logging.info(f" принят корректный ответ user {res.group()}")
                 return res
 
+class Board_new:
+
+    def __init__(self, size_map, ships_list,  side_dysplay, type_gamer, board_map =None, ships = None):
+        self.side_dysplay = side_dysplay # сторона экрана - left, right
+        self.type_gamer = type_gamer # тип игрока - user - человек, comp - компьютер
+        self.size_map = size_map # Размерность игрового поля
+        self.ships_list = ships_list # Список кораблей, длина:количество
+
+        self.ships = ships
+    #def __init__(self, size_map, ships_list,ships_user = None, ships_comp = None, comp_map = None):
+
+        self.left_map =  [[Dot(j, i) for i in range(0, self.size_map )] for j in range(0, self.size_map )]
+        self.right_map = [[Dot(j, i) for i in range(0, self.size_map )] for j in range(0, self.size_map )]
+        #self.board_map = [[Dot(j, i) for i in range(0, self.size_map )] for j in range(0, self.size_map )] # список точек доски comp
+        #self.left_map = [[Dot(j, i) for i in range(0, self.size_map )] for j in range(0, self.size_map )] # список точек доски left
+        #logging.info(f"Создан comp_map")
+        #self.user_map = [[Dot(j, i) for i in range(0 + self.size_map, 2 * self.size_map )] for j in range(0, self.size_map)]
+        # self.right_map = [[Dot(j, i) for i in range(0, self.size_map )] for j in range(0, self.size_map )] # список точек доски right
+
+    def invite_to_start(self):
+        d = {'00': 'Демо', 10:'Левое поле - игрок, правое поле -компьютер', '01': "Левое поле - компьютер, правое поле - игрок"}
+        logging.info("Приглашение к началу игры")
+        while True
+            print(f"{__LINE__}:Выберите поле и режим игры: 10 - поле игрока слева, 01 - справа, 00 - Демо игра между двумя компьютерами")
+            m = input(f"{__LINE__}: Введите свой выбор __:")
+            res = re.match(r'(\d{1})\W*\(d{1}$)')
+            if res:
+
+                print(f"{__LINE__} Игра: {d[res(1)+res(2)]}")
+                logging.info(f"Выбрана игра {res.group(1)}-{res.group(2)}")
+
+                return res.group(0), res.group(1)
+            else:
+                print(f"{__LINE__}: Введены некорректные символы, повторите ввод.")
+
+    def create_ships(self):
+        if self.type_gamer == 'user':
+            s = self.create_ships_user()
+        else:
+
+        #self.ships_comp = self.create_ships()[1]
+
+    def create_ships_user(self):  # создаем объекты кораблей user
+        ships_list1 = sorted(self.ships_list, reverse=True)
+        ships_user = {}
+        for i in ships_list1:
+            for j in range(i[1]):
+                # ships_user[f"{i[0]}-{j}"] = Ship(i[0])
+                ships_user[f"{i[0]}-{j}"] = Ship(None)
+        return ships_user
+
+    def create_ships_comp(self):  # создаем объекты кораблей comp и размещаем их на карте
+
+        ships_comp = {}  # Словарь из всех созданных объектов кораблей компьютера
+        ships_list1 = sorted(self.ships_list, reverse=True)
+        count_try = 1  # номер попытки размещения кораблей. Для отладки
+        while True:
+            # Очищаем все точки доски comp
+            for i in range(0, self.size_map):
+                for j in range(0, self.size_map):
+                    self.board_map[i][j].status_ = 'free'
+            res = []
+            for i in ships_list1:
+                for j in range(i[1]):
+
+                    ships_comp[f"{i[0]}-{j}"] = Ship(i[0], life_=i[0])
+                    res1, res2, res3, res4 = ships_comp[f"{i[0]}-{j}"].find_free_place_new(self.board_map, self.size_map)
+                    logging.info(f"ship[{i[0]}-{j}]: {res1},{res2},{res3},{res4}")
+                    if res1:
+                        # logging.info(f"Найдены координаты для  ship[{i[0]}-{j}] ")
+                        self.board_map = self.place_the_ship(ships_comp[f"{i[0]}-{j}"], self.board_map)
+                    res.append(res1)
+
+            if all(res):
+                logging.info(f"Все корабли размещены на comp_map")
+                for k, v, in ships_comp.items():
+                    logging.info(f" {k}: {v}, life {v.life_}, long {v.long}, row_ {v.row_}, col_ {v.col_}")
+
+                return self.comp_map, ships_comp
+            else:
+                logging.error(f"Не удалось разместить корабли, повторяем попытку")
+                print(f"{__LINE__}: не удалось разместить, попытка {count_try}, повторяем")
+                count_try += 1
+
+        # список точек доски gamer
+        self.comp_map, self.ships_comp = self.create_ships() # карта поля игрока comp с введенными координатами кораблей
+        logging.info(f"В comp_map внесены координаты кораблей")
+
+
+   def place_the_ship(self, ship, dots_list): # записываем координаты точек корабля в объекты точек
+        #s =[]
+        row_ = ship.row_
+        col_ = ship.col_
+
+        for i in range(ship.long):
+            row1_ = row_ + i if ship.direction == 'V'  else row_
+            col1_ = col_ + i if ship.direction == 'H'  else col_
+
+            dots_list[row1_][col1_].status_ = 'busy'
+            dots_list[row1_][col1_].ship = ship
+            logging.info(f" ship(row1_, col1_) ({row1_}, {col1_})")
+            #s.append( dots_list[row1_][col1_])
+        return dots_list
+
+class Player_new:
+    def __init__(self, side_display, type_gamer, size_map, ships_list):
+        self.side_display = side_display
+        self.type_gamer = type_gamer
+        self.size_map = size_map
+        self.ships_list = ships_list
+
+
+        self.board = Board_new(size_map, ships_list, side_display, type_gamer)
 
 
 
@@ -791,6 +1008,24 @@ def main_game():
             logging.info("Игра закончена, выиграл {gamer_win}")
             return True
 
+
+def main_game_new():
+
+    Board_width = Board_length = 6 # Задаем размерность полей
+    ships_list =[(1,4), (2,2), (3,1)] # ключ - длина корабля, значение - количество кораблей этой длины
+    board_ = Board(size_map = 6, ships_list = ships_list)
+    player_= Player()
+
+
+
+    while True:
+        board_.paint_board()
+        player_.make_move(board_)
+        win_, gamer_win = board_.check_win (player_.next_)
+        if win_:
+            print(f"{__LINE__}: Игра закончена, выиграл {gamer_win}")
+            logging.info("Игра закончена, выиграл {gamer_win}")
+            return True
 
 
 
