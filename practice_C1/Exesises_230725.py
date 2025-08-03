@@ -1131,7 +1131,7 @@ def main_game():
 
 
 def main_game_new():
-
+    # 03082025
     board_long = 6 # Задаем размерность полей
     ships_list =[(1,4), (2,2), (3,1)] # ключ - длина корабля, значение - количество кораблей этой длины
     board_ = Board_new(size_map = board_long, ships_list = ships_list)
