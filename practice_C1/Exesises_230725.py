@@ -1181,6 +1181,7 @@ class Board_new:
         return True
 
     def update_user_map(self, res, x, y):  # Обновление dot, ship, board по результату хода comp
+        # 04.08.25 - Здесь нужно исправить все ссылки на проверяемое поле dots_list
         row_ = x
         col_ = y - self.size_map
         m = res.group()
@@ -1343,7 +1344,7 @@ class Player_new:
            
             x,y = self.get_user_coord(board_)
             logging.info(f"Получены координаты , игрок {self.users_[self.next_]} - ({x},{y})")
-            res_move = self.check_user_coord(x, y, board_.board_map[self.users_[not self.next_]])
+            res_move = self.check_user_coord(x, y, board_)
             logging.info(f"Получен ответ от игрока {self.users_[not self.next_]} - {res_move}")
             print(f"{__LINE__}: Ответ игрока {self.users_[not self.next_]} - {res_move}")
 
@@ -1351,10 +1352,10 @@ class Player_new:
             key_ = self.users_[self.next_]
             x, y = self.get_comp_coord(board_, key_)
             logging.info(f"Получены координаты , игрок  {self.users_[self.next_]} - ({x},{y})")
-            res_move = self.check_comp_coord(x, y, board_.board_map[self.users_[not self.next_]])
+            res_move = self.check_comp_coord(x, y, board_)
             logging.info(f"Получен ответ от игрока {self.users_[not self.next_]} - {res_move}")
             print(f"{__LINE__}: Ответ игрока {self.users_[not self.next_]} - {res_move}")
-            self.check_comp_coord(self, x, y, board_) # Проверка ответа user на ошибки.
+            #self.check_comp_coord(self, x, y, board_) # Проверка ответа user на ошибки.
             board_.update_user_map(res_move, x, y)
        self.next_ = not self.next_
        return True
@@ -1429,7 +1430,8 @@ class Player_new:
                 logging.error(f" неверные координаты {m}")
                 print(f"Недопустимые символы, повторите ввод")
 
-    def check_user_coord(self, x, y, dot_ ): # Проверка введенных координат user
+    def check_user_coord(self, x, y, board_ ): # Проверка введенных координат user
+        dot_ = board_.board_map[self.users_[not self.next_]]
         logging.info(f" start ({x},{y}) - {dot_[x][y].status_}")
         if dot_[x][y].status_ == 'free':
             result = 'Мимо'
@@ -1514,7 +1516,7 @@ class Player_new:
         m = res.group()
         logging.info(f"Проверяем игрок  user {m} на ход comp ({x},{y})")
         logging.info(f" board = {board_})")
-
+        dots_list = board_.board_map[self.users_[not self.next_]]
         if m == '1':  # Ход мимо
             # board.user_map[row_][col_].status_ = 'T'
             return True, ''
@@ -1524,7 +1526,7 @@ class Player_new:
 
             logging.info(f"Поиск среди соседних клеток раненых и убитых ")
             m1 = [(-1, -1), (-1, 0), (0, -1), (1, 0), (0, 1), (1, 1), (-1, 1), (1, -1)]
-            m2 = board_.check_dot(row_, col_, ['X', 'killed'], m1)
+            m2 = board_.check_dot(row_, col_, ['X', 'killed'], m1, dots_list)
             if len(m2) > 1:
                 msg = "Некорректный ответ. У раненой клетки не может быть более 1 соседней клетки с кораблем"
                 logging.info(msg)
@@ -1533,7 +1535,7 @@ class Player_new:
 
             logging.info(f"Поиск среди соседних диагональных клеток раненых или убитых ")
             m1 = [(-1, -1), (1, 1), (-1, 1), (1, -1)]
-            m2 = board_.check_dot(row_, col_, ['X', 'killed'], m1)
+            m2 = board_.check_dot(row_, col_, ['X', 'killed'], m1, dots_list)
             if m2:
                 msg = "Некорректный ответ. У раненой клетки не может быть диагональной соседней клетки с кораблем"
                 logging.info(msg)
@@ -1543,7 +1545,7 @@ class Player_new:
             logging.info(
                 f"Проверяем смежные клетки (кроме диагональных) на предмет ранен, для объединения в один корабль")
             m1 = [(-1, 0), (0, -1), (1, 0), (0, 1)]
-            m2 = board_.check_dot(row_, col_, ['X'], m1)
+            m2 = board_.check_dot(row_, col_, ['X'], m1, dots_list)
 
             if m2:
                 logging.info(f"Найдена соседняя раненая точка {m2} ")
@@ -1576,7 +1578,7 @@ class Player_new:
             logging.info(f"Проверяем корректность ответа ")
             logging.info(f"Ищем соседнюю убитую клетку ")
             m1 = [(-1, -1), (-1, 0), (0, -1), (1, 0), (0, 1), (1, 1), (-1, 1), (1, -1)]
-            m2 = board_.check_dot(row_, col_, ['killed'], m1)
+            m2 = board_.check_dot(row_, col_, ['killed'], m1, dots_list)
             if m2:
                 msg = "Некорректный ответ. У убитой  клетки не может быть  соседней клетки с убитым кораблем"
                 logging.info(msg)
@@ -1585,7 +1587,7 @@ class Player_new:
 
             logging.info(f"Ищем соседнюю по диагонали раненую или убитую клетку ")
             m1 = [(-1, -1), (-1, 0), (0, -1), (1, 0), (0, 1), (1, 1), (-1, 1), (1, -1)]
-            m2 = board_.check_dot(row_, col_, ['X', 'killed'], m1)
+            m2 = board_.check_dot(row_, col_, ['X', 'killed'], m1, dots_list)
             if m2:
                 msg = "Некорректный ответ. У убитой  клетки не может быть диагональной соседней клетки с кораблем"
                 logging.info(msg)
