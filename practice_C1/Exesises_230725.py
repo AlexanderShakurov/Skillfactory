@@ -959,9 +959,9 @@ class Board_new:
 
 
     def __init__(self, size_map, ships_list,  side_dysplay = None, type_game= '00',
-                 gamers_name = None, board_map =None, ships = None):
+                 gamers_name = None, board_map =None, ships = None, player_ = None):
         self.side_dysplay = side_dysplay # сторона экрана - left, right
-
+        self.player_ = player_
         self.type_game = type_game # тип игрока - user - человек, comp - компьютер
         self.size_map = size_map # Размерность игрового поля
         self.ships_list = ships_list # Список кораблей, длина:количество
@@ -1041,9 +1041,10 @@ class Board_new:
         #print(f"  {self.gamers_name[self.gamers['left']]:13}{' '*8}{self.gamers_name[self.gamers['right']]:13}")
         return True
 
-    def waiting_for_input(self, text_):
+    def input_(self, text_):
         #m_ = "Введите свой выбор XY__:"
         l_text = len(text_)
+
         m = input(f"{' ' * 2}{' ' * 13}{' ' * 8}{' ' * 13}{' ' * 8}{text_:<{len(text_)}}")
         return m
 
@@ -1070,14 +1071,12 @@ class Board_new:
             msg[i + 1] = msg[i + 1][:24] + f"{msg_[i + 1]:24}"
 
 
-
-
         self.paint_board(msg)
-        m = self.waiting_for_input('Для продолжения нажмите Enter')
+        m = self.input_('Для продолжения нажмите Enter')
 
         msg = ['' for _ in range(self.size_map)]
 
-        msg[0] = f"""{"Введите режим игры, в формате 'XY'":<48}"""
+        msg[0] = f"""{"Введите режим игры, в формате 'DD'":<48}"""
         msg[1] = f"""{"Игра против компьютера: ":<48}"""
 
         msg[2] = f"""{"Левое поле игрока: '10'":<24}{"Правое поле игрока: '01'":>24}"""
@@ -1085,16 +1084,18 @@ class Board_new:
         msg[4] = f"""{"Демо игра - компьютер против компьютера '00'":<48}"""
 
         
-        self.paint_board(msg)
+        #self.paint_board(msg)
 
 
-        d = {'00': 'Демо', '10':'Левое поле - игрок, правое поле -компьютер', '01': "Левое поле - компьютер, правое поле - игрок"}
+        #d = {'00': 'Демо', '10':'Левое поле - игрок, правое поле -компьютер', '01': "Левое поле - компьютер, правое поле - игрок"}
         logging.info("Приглашение к началу игры")
         while True:
+            self.paint_board(msg)
+            m = self.input_('Введите режим игры: ')
             #print(f"{__LINE__}:Выберите поле и режим игры: 10 - поле игрока слева, 01 - справа, 00 - Демо игра между двумя компьютерами")
-            m_ =     "Введите свой выбор XY__:"
-            lm_ = len(m_)
-            m = input (f"{' '*2}{' '*13}{' '*8}{' '*13}{' '*8}{m_:<{len(m_)}}")
+            #m_ =     "Введите свой выбор XY__:"
+            #lm_ = len(m_)
+            #m = input (f"{' '*2}{' '*13}{' '*8}{' '*13}{' '*8}{m_:<{len(m_)}}")
 
             #m = input(f"{__LINE__}: Введите свой выбор __:")
             res = re.match(r'(\d{1})\W*('r'\d{1}$)', m)
@@ -1106,7 +1107,8 @@ class Board_new:
 
                 return f"{res.group(1)}{res.group(2)}"
             else:
-                print(f"{__LINE__}: Введены некорректные символы, повторите ввод.")
+                #print(f"{__LINE__}: Введены некорректные символы, повторите ввод.")
+                msg[5] = f"Введены некорректные символы, повторите ввод."
 
     def create_ships(self):
         logging.info(f" gamers: {self.gamers}")
@@ -1164,7 +1166,7 @@ class Board_new:
                 return ships_comp
             else:
                 logging.error(f"Не удалось разместить корабли, повторяем попытку")
-                print(f"{__LINE__}: не удалось разместить, попытка {count_try}, повторяем попытку")
+                #print(f"{__LINE__}: не удалось разместить, попытка {count_try}, повторяем попытку")
                 count_try += 1
 
 
@@ -1407,7 +1409,7 @@ class Player_new:
 
     def __init__(self,users_ = None, next_= None, msg_list = None, count_move = 0, board_ = None):
         game_list = {'01': {'left': ['0', 'Компьютер'], 'right': ['1', 'Игрок']},
-                     '00': {'left': ['0', 'Компьютер-1'], 'right': ['0', 'Компьютер-2']},
+                     '00': {'left': ['0', 'Игрок-1'], 'right': ['0', 'Игрок-2']},
                      '10': {'left': ['1', 'Игрок'], 'right': ['0', 'Компьютер']}}
 
         self.count_move = count_move
@@ -1424,7 +1426,7 @@ class Player_new:
 
     def first_player(self): # Определяем, чей первый ход
         logging.info(f"{self.board_}")
-        self.board_.msg_list = ['' for i in range(self.board_.size_map)]
+
 
         a = random.choice([1, 0])
         b =  not a
@@ -1432,19 +1434,28 @@ class Player_new:
 
 
         logging.info(f" Первый ход игрока {self.current_game[s[a]][1]}")
+        self.board_.msg_list = ['' for i in range(self.board_.size_map)]
         msg_1 = f"Левое поле: {self.current_game['left'][1]}"
         msg_1 = f"{msg_1:<24}"
         msg_2 = f"Правое поле: {self.current_game['right'][1]}"
         msg_2 = f"{msg_2:>24}"
         self.board_.msg_list[0] = f"""{msg_1}{msg_2}"""
-        msg_3 =  f"""Первый ход делает {self.current_game[s[a]][1]}"""
+        msg_3 =  f"""Первый ход {self.current_game[s[a]][1]}"""
         msg_3 = f"{msg_3:<48}"
         self.board_.msg_list[2] = f"""{msg_3}"""
-        self.board_.paint_board(self.board_.msg_list)
 
+        self.board_.paint_board(self.board_.msg_list)
+        time.sleep(4)
+        print()
         return a, s
 
-    
+    def input_(self, text_):
+        # m_ = "Введите свой выбор XY__:"
+        l_text = len(text_)
+        l = self.current_game['left'][1]
+        r = self.current_game['right'][1]
+        m = input(f"{' ' * 2}{l:<13}{' ' * 8}{r:<13}{' ' * 8}{text_:<{len(text_)}}")
+        return m
     
 
 
@@ -1466,11 +1477,13 @@ class Player_new:
        while True:
            if type_player == '1': #    Ручной ввод игроком
                msg = ['' for i in range(self.board_.size_map)]
-               msg[0] = f"Делает ход {self.current_game[self.users_[self.next_]][1]}"
+               msg[0] = f"Ходит {self.current_game[self.users_[self.next_]][1]}"
 
                msg[1] = f"Введите координаты XY"
 
-               msg[2] = f"X - по вертикали, Y - по горизонтали"
+               msg[2] = f"X - по вертикали"
+               msg[3] = f"Y - по горизонтали"
+               msg[4] = f"Q - выход"
 
                msg = [f"{msg[i]:<48}" for i in range(self.board_.size_map)]
                self.board_.paint_board(msg)
@@ -1487,20 +1500,24 @@ class Player_new:
                quit_game, x, y = self.get_comp_coord(board_)
 
            msg = ['' for i in range(self.board_.size_map)]
-           msg[0] = f"Ход игрока {self.current_game[self.users_[self.next_]][1]} - ({x},{y})"
+           msg[0] = f"Ход игрока {self.current_game[self.users_[self.next_]][1]} - ({x + 1},{y + 1})"
 
            msg = [f"{msg[i]:<48}" for i in range(self.board_.size_map)]
-           self.board_.paint_board(msg)
+
+           #self.board_.paint_board(msg)
 
            logging.info(f"Получены координаты , игрок {self.users_[self.next_]} - ({x},{y})")
            logging.info(f" type_next_player = {type_next_player}")
 
            # Ответ игрока2 на ход игрока1
            if type_next_player == '1': #   Ручной ответ от соперника user
+
                res_move = self.check_comp_coord(x, y, board_)
                if res_move: # Ход принят, возвращен результат
 
                    board_.update_user_map(res_move, x, y, self.users_[not self.next_]) # Компьютер обновляет карту user
+                   self.board_.paint_board(self.board_.msg_list)
+                   time.sleep(3)
                    break
                else: # Ход не принят. Координаты уже использованы ранее
                    pass
@@ -1566,12 +1583,12 @@ class Player_new:
         logging.info(f"Ход игрока")
         #board.
         text_ = "Введите значение: "
-        #self.board_.waiting_for_input(text_)
+        #self.board_.input_(text_)
         while True:
 
             #print(f"Ход игрока. Введите координаты XY")
             #m = input(f"X -по вертикали, Y - по горизонтали, Q - выход :")
-            m = self.board_.waiting_for_input(text_)
+            m = self.input_(text_)
             m1 = re.match(r'([Qq]$)|(\d{1})\W*(\d{1})', m)
             if m1:
                 logging.info(f" {m1.group(1), m1.group(2), m1.group(3)}")
@@ -1599,11 +1616,14 @@ class Player_new:
                         else:
                             logging.info(f" Ход  {self.users_[self.next_]} ({x},{y})")
                             msg = ['' for i in range(self.board_.size_map)]
-                            msg[0] = f"Сделан ход - {self.current_game[self.users_[self.next_]][1]} - ({x},{y})"
+                            msg[0] = f"{self.current_game[self.users_[self.next_]][1]} - ({x + 1},{y + 1})"
 
                             msg = [f"{msg[i]:<48}" for i in range(self.board_.size_map)]
-                            self.board_.paint_board(msg)
-                            input(f"{__LINE__}: контроль")
+                            self.board_.msg_list = msg
+                            #self.board_.paint_board(msg)
+                            #input(f"{__LINE__}: контроль")
+
+
                             return False, x,y
 
                     else:
@@ -1688,6 +1708,11 @@ class Player_new:
 
                 if res11:
                     #res1, msg1 = board_.update_user_map (res, x, y, self.users_[not self.next_])  #Обновление карты по итогам хода.
+
+                    msg = f"{self.current_game[self.users[not self.next_]]} ответ {res}"
+                    self.board_msg_list[0] = (self.board_msg_list[0] +
+                                              f"{msg:<24}")
+
                     return res
                     #break
                 else:
@@ -1698,15 +1723,23 @@ class Player_new:
                 print(f"{__LINE__}:некорректный выбор ответа, повторите ввод")
 
     def get_user_answer(self):
+        msg_1 = self.board_.msg_list[0]
         while True:
-            m = input(f"Введите результат хода. 1 - мимо, 2 -ранен, 3 - убит :")
+
+            self.board_.msg_list[1] = f"Введите результат хода. 1 - мимо, 2 -ранен, 3 - убит"
+            self.board_.msg_list[2] = f"1 - мимо"
+            self.board_.msg_list[3] = f"2 - ранен"
+            self.board_.msg_list[4] = f"3 - убит"
+            self.board_.paint_board(self.board_.msg_list)
+            m = self.input_("Результат: ")
+            #m = input(f"Введите результат хода. 1 - мимо, 2 -ранен, 3 - убит :")
 
             res = re.match(r'([1-3]{1})', m)
 
             if not res:
-
+                self.board_.msg_list[5] = f"некорректный выбор ответа, повторите ввод"
                 logging.info(f"некорректный выбор ответа")
-                print(f"{__LINE__}:некорректный выбор ответа, повторите ввод")
+                #print(f"{__LINE__}:некорректный выбор ответа, повторите ввод")
             else:
 
                 logging.info(f" принят корректный ответ user {res.group()}")
@@ -1828,6 +1861,8 @@ def main_game_new():
 
     board_ = Board_new(size_map = board_long, ships_list = ships_list)
     player_ = Player_new(board_ = board_)
+    #board_.player = player_
+
 
 
 
