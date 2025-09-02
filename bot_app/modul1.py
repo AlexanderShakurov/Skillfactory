@@ -5,7 +5,7 @@ import re
 import requests
 import pandas as pd
 import redis
-
+ 
 import datetime
 import xml.etree.ElementTree as ET
 from lxml import etree
