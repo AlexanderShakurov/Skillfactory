@@ -7,7 +7,7 @@ import modul1 as m
 
 # pytelegrambotapi
  
-TOKEN = "8230532971:AAFbruNEFlY_omq9zHjmbz7HJol2EYsKuBY"
+
  
 bot = telebot.TeleBot(TOKEN)
 bank= m.Bank(name = 'cbr')
